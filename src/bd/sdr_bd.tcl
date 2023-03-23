@@ -123,6 +123,7 @@ if { $bCheckIPs == 1 } {
    set list_check_ips "\ 
 xilinx.com:ip:proc_sys_reset:5.0\
 xilinx.com:ip:processing_system7:5.5\
+xilinx.com:ip:util_vector_logic:2.0\
 "
 
    set list_ips_missing ""
@@ -190,10 +191,12 @@ proc create_root_design { parentCell } {
 
   set FIXED_IO [ create_bd_intf_port -mode Master -vlnv xilinx.com:display_processing_system7:fixedio_rtl:1.0 FIXED_IO ]
 
-  set spi [ create_bd_intf_port -mode Master -vlnv xilinx.com:interface:spi_rtl:1.0 spi ]
-
 
   # Create ports
+  set spi_clk [ create_bd_port -dir O spi_clk ]
+  set spi_csn [ create_bd_port -dir O -from 0 -to 0 spi_csn ]
+  set spi_miso [ create_bd_port -dir I spi_miso ]
+  set spi_mosi [ create_bd_port -dir O spi_mosi ]
 
   # Create instance: proc_sys_reset_0, and set properties
   set proc_sys_reset_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:proc_sys_reset:5.0 proc_sys_reset_0 ]
@@ -240,14 +243,26 @@ proc create_root_design { parentCell } {
   ] $processing_system7_0
 
 
+  # Create instance: spi_cs_neg, and set properties
+  set spi_cs_neg [ create_bd_cell -type ip -vlnv xilinx.com:ip:util_vector_logic:2.0 spi_cs_neg ]
+  set_property -dict [list \
+    CONFIG.C_OPERATION {not} \
+    CONFIG.C_SIZE {1} \
+  ] $spi_cs_neg
+
+
   # Create interface connections
   connect_bd_intf_net -intf_net processing_system7_0_DDR [get_bd_intf_ports DDR] [get_bd_intf_pins processing_system7_0/DDR]
   connect_bd_intf_net -intf_net processing_system7_0_FIXED_IO [get_bd_intf_ports FIXED_IO] [get_bd_intf_pins processing_system7_0/FIXED_IO]
-  connect_bd_intf_net -intf_net processing_system7_0_SPI_0 [get_bd_intf_ports spi] [get_bd_intf_pins processing_system7_0/SPI_0]
 
   # Create port connections
+  connect_bd_net -net Net [get_bd_pins processing_system7_0/SPI0_SS_O] [get_bd_pins spi_cs_neg/Op1]
+  connect_bd_net -net SPI0_MISO_I_0_1 [get_bd_ports spi_miso] [get_bd_pins processing_system7_0/SPI0_MISO_I]
   connect_bd_net -net processing_system7_0_FCLK_CLK0 [get_bd_pins proc_sys_reset_0/slowest_sync_clk] [get_bd_pins processing_system7_0/FCLK_CLK0] [get_bd_pins processing_system7_0/M_AXI_GP0_ACLK]
   connect_bd_net -net processing_system7_0_FCLK_RESET0_N [get_bd_pins proc_sys_reset_0/ext_reset_in] [get_bd_pins processing_system7_0/FCLK_RESET0_N]
+  connect_bd_net -net processing_system7_0_SPI0_MOSI_O [get_bd_ports spi_mosi] [get_bd_pins processing_system7_0/SPI0_MOSI_O]
+  connect_bd_net -net processing_system7_0_SPI0_SCLK_O [get_bd_ports spi_clk] [get_bd_pins processing_system7_0/SPI0_SCLK_O]
+  connect_bd_net -net util_vector_logic_0_Res [get_bd_ports spi_csn] [get_bd_pins spi_cs_neg/Res]
 
   # Create address segments
 
