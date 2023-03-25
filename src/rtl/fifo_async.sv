@@ -11,11 +11,11 @@ module fifo_async
     input  wire in_clk,
     input  wire in_valid,
     output wire in_ready,
-    input  wire in_data,
+    input  wire[WRITE_DATA_WIDTH-1:0] in_data,
     input  wire out_clk,
     output wire out_valid,
     input  wire out_ready,
-    output wire out_data
+    output wire[READ_DATA_WIDTH-1:0] out_data
 );
 
 assign wr_en     = in_valid & (~full);
@@ -31,7 +31,7 @@ xpm_fifo_async #(
   .ECC_MODE("no_ecc"),      
   .FIFO_MEMORY_TYPE("auto"),
   .FIFO_READ_LATENCY(1),    
-  .FIFO_WRITE_DEPTH(2048),  
+  .FIFO_WRITE_DEPTH(DATA_DEPTH),  
   .FULL_RESET_VALUE(0),     
   .PROG_EMPTY_THRESH(10),   
   .PROG_FULL_THRESH(10),    

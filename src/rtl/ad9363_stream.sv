@@ -18,25 +18,35 @@ module ad9363_stream (
   input wire [11:0] in_data_q,
   output reg in_ready,
   //external output stream
-  output wire fb_clk,
+  output reg fb_clk,
   output reg tx_frame,
-  output reg p1_d,
+  output reg[11:0] p1_d,
   //external input stream
   input wire data_clk,
   input wire rx_frame,
-  input wire p0_d
+  input wire[11:0] p0_d
 );
 
-  typedef enum t_controler_state { ST_IDLE, ST_I, ST_Q } tx_state;
+  typedef enum { ST_IDLE, ST_I, ST_Q }  t_controler_state;
   t_controler_state tx_ctrl_state;
 
   reg [11:0] in_data_i_int;
   reg [11:0] in_data_q_int;
-  reg [11:0] out_data_i_int;
+  reg [11:0] out_data_i_int [1:0];
   reg [11:0] out_data_q_int;
   reg out_valid_int = 1'b0;
+  reg is_i;
 
-  assign fb_clk = ~clk;
+  // assign fb_clk = ~clk;
+
+  always @(negedge clk) begin
+    if(rst) begin
+      fb_clk <= 1'b0;
+    end
+    else begin
+      fb_clk <= ~fb_clk;  
+    end
+  end
 
   //TX CONTROL
   always @(posedge clk) begin
@@ -56,7 +66,7 @@ module ad9363_stream (
             tx_ctrl_state <= ST_I;
             in_ready <= 1'b0;
           end 
-          else begin
+          else if(fb_clk) begin
             in_ready <= 1'b1;
           end
         end
@@ -77,15 +87,22 @@ module ad9363_stream (
   end
 
   //RX control
-  always @(posedge data_clk) begin
+  always @(negedge data_clk) begin
+    out_data_i_int[0] <= p1_d;
+    out_data_i_int[1] <= out_data_i_int[0];
     if(rx_frame) begin
-      out_data_i_int <= p1_d;
-      out_valid_int <= 1'b0;
+      is_i <= 1'b1;
+    end else begin
+      is_i <= 1'b0;
     end
-    else begin
-      out_data_q_int <= p1_d;
-      out_valid_int <= 1'b1;
-    end
+  end
+
+
+
+  always @(posedge data_clk) begin
+    out_valid_int <= 1'b1;
+    out_data_q_int[0] <= p1_d;
+    out_data_q_int[1] <= out_data_q_int[0];
   end
 
   fifo_async
@@ -99,7 +116,7 @@ module ad9363_stream (
       .in_clk(data_clk),
       .in_valid(out_valid_int),
       .in_ready(),
-      .in_data({out_data_i_int,out_data_q_int}),
+      .in_data((is_i) ? {out_data_i_int[1],out_data_q_int} : {out_data_q_int, out_data_i_int[0]}),
       .out_clk(clk),
       .out_valid(out_valid),
       .out_ready(out_ready),
