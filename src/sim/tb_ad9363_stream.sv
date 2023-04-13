@@ -9,13 +9,20 @@ logic [11:0] out_ad_data_q, in_ad_data_q;
 logic out_ad_valid, in_ad_valid;
 logic out_ad_ready, in_ad_ready;
 
-logic ad_clk, ad_frame;
+logic ad_clk, fb_clk, ad_frame;
 logic [11:0] ad_data;
 
 initial begin
   clk = 1'b0;
   forever begin
     clk = #5 ~clk;
+  end
+end
+
+initial begin
+  ad_clk = 1'b0;
+  forever begin
+    ad_clk = #23 ~ad_clk;
   end
 end
 
@@ -48,7 +55,7 @@ ad9363_stream my_ad9363_stream(
   .in_data_q(in_ad_data_q),
   .in_ready(in_ad_ready),
   //external output stream
-  .fb_clk(ad_clk),
+  .fb_clk(fb_clk),
   .tx_frame(ad_frame),
   .p1_d(ad_data),
   //external input stream

@@ -46,10 +46,12 @@ set_property  -dict {PACKAGE_PIN  G15  IOSTANDARD LVCMOS18} [get_ports gpio_ctl[
 set_property  -dict {PACKAGE_PIN  F15  IOSTANDARD LVCMOS18} [get_ports gpio_ctl[3]]
 
 set_property  -dict {PACKAGE_PIN  L13  IOSTANDARD LVCMOS18} [get_ports gpio_en_agc]
-set_property -dict {PACKAGE_PIN P9 IOSTANDARD LVCMOS18} [get_ports gpio_resetb]
-
-set_property  -dict {PACKAGE_PIN  K12  IOSTANDARD LVCMOS18} [get_ports enable]
-set_property  -dict {PACKAGE_PIN  K11  IOSTANDARD LVCMOS18} [get_ports txnrx]
+#gpio_resetb
+set_property -dict {PACKAGE_PIN P9 IOSTANDARD LVCMOS18} [get_ports gpio_emio[0]]
+#enable
+set_property  -dict {PACKAGE_PIN  K12  IOSTANDARD LVCMOS18} [get_ports gpio_emio[1]]
+#txnrx
+set_property  -dict {PACKAGE_PIN  K11  IOSTANDARD LVCMOS18} [get_ports gpio_emio[2]]
 
 set_property  -dict {PACKAGE_PIN  M14  IOSTANDARD LVCMOS18 PULLTYPE PULLUP} [get_ports iic_scl]
 set_property  -dict {PACKAGE_PIN  N14  IOSTANDARD LVCMOS18 PULLTYPE PULLUP} [get_ports iic_sda]

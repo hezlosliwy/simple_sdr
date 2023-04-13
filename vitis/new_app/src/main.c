@@ -16,9 +16,9 @@ AD9361_InitParam default_init_param = {
 	/* Reference Clock */
 	40000000UL,	//reference_clk_rate
 	/* Base Configuration */
-	1,		//two_rx_two_tx_mode_enable *** adi,2rx-2tx-mode-enable
+	0,		//two_rx_two_tx_mode_enable *** adi,2rx-2tx-mode-enable
 	1,		//frequency_division_duplex_mode_enable *** adi,frequency-division-duplex-mode-enable
-	0,		//frequency_division_duplex_independent_mode_enable *** adi,frequency-division-duplex-independent-mode-enable
+	1,		//frequency_division_duplex_independent_mode_enable *** adi,frequency-division-duplex-independent-mode-enable
 	0,		//tdd_use_dual_synth_mode_enable *** adi,tdd-use-dual-synth-mode-enable
 	0,		//tdd_skip_vco_cal_enable *** adi,tdd-skip-vco-cal-enable
 	0,		//tx_fastlock_delay_ns *** adi,tx-fastlock-delay-ns
@@ -40,13 +40,13 @@ AD9361_InitParam default_init_param = {
 	0,		//ensm_enable_pin_pulse_mode_enable *** adi,ensm-enable-pin-pulse-mode-enable
 	0,		//ensm_enable_txnrx_control_enable *** adi,ensm-enable-txnrx-control-enable
 	/* LO Control */
-	1010000000UL,	//rx_synthesizer_frequency_hz *** adi,rx-synthesizer-frequency-hz
-	1010000000UL,	//tx_synthesizer_frequency_hz *** adi,tx-synthesizer-frequency-hz
+	1000000000UL,	//rx_synthesizer_frequency_hz *** adi,rx-synthesizer-frequency-hz
+	1000000000UL,	//tx_synthesizer_frequency_hz *** adi,tx-synthesizer-frequency-hz
 	/* Rate & BW Control */
-	{983040000, 245760000, 122880000, 61440000, 30720000, 30720000},//uint32_t	rx_path_clock_frequencies[6] *** adi,rx-path-clock-frequencies
-	{983040000, 122880000, 122880000, 61440000, 30720000, 30720000},//uint32_t	tx_path_clock_frequencies[6] *** adi,tx-path-clock-frequencies
-	18000000,//rf_rx_bandwidth_hz *** adi,rf-rx-bandwidth-hz
-	18000000,//rf_tx_bandwidth_hz *** adi,rf-tx-bandwidth-hz
+	{98304000, 24576000, 12288000, 6144000, 3072000, 3072000},//uint32_t	rx_path_clock_frequencies[6] *** adi,rx-path-clock-frequencies
+	{98304000, 12288000, 12288000, 6144000, 3072000, 3072000},//uint32_t	tx_path_clock_frequencies[6] *** adi,tx-path-clock-frequencies
+	1800000,//rf_rx_bandwidth_hz *** adi,rf-rx-bandwidth-hz
+	1800000,//rf_tx_bandwidth_hz *** adi,rf-tx-bandwidth-hz
 	/* RF Port Control */
 	0,		//rx_rf_port_input_select *** adi,rx-rf-port-input-select
 	0,		//tx_rf_port_input_select *** adi,tx-rf-port-input-select
@@ -297,15 +297,23 @@ int main(){
 	ad9361_set_rx_fir_config(ad9361_phy, rx_fir_config);
 	xil_printf("Hello\n");
 	u32 mode;
+	XGpioPs my_gpio;
+	XGpioPs_Config *cfg_ptr;
+	cfg_ptr = XGpioPs_LookupConfig(XPAR_XGPIOPS_0_DEVICE_ID);
+	XGpioPs_CfgInitialize(&my_gpio, cfg_ptr, cfg_ptr->BaseAddr);
+	XGpioPs_SetDirectionPin(&my_gpio, 55, 1);
+	XGpioPs_SetOutputEnablePin(&my_gpio, 55, 1);
+	XGpioPs_SetDirectionPin(&my_gpio, 56, 1);
+	XGpioPs_SetOutputEnablePin(&my_gpio, 56, 1);
+	XGpioPs_WritePin(&my_gpio, 55,1);
+	XGpioPs_WritePin(&my_gpio, 56,1);
 	while(1) {
 		ad9361_get_en_state_machine_mode(ad9361_phy, &mode);
 	}
+
 //	int i = 0;
 //	int val = 0;
-//	XGpioPs my_gpio;
-//	XGpioPs_Config *cfg_ptr;
-//	cfg_ptr = XGpioPs_LookupConfig(XPAR_XGPIOPS_0_DEVICE_ID);
-//	XGpioPs_CfgInitialize(&my_gpio, cfg_ptr, cfg_ptr->BaseAddr);
+
 //	XGpioPs_SetDirectionPin(&my_gpio, 15, 1);
 //	XGpioPs_SetOutputEnablePin(&my_gpio, 15, 1);
 //	while(1) {
