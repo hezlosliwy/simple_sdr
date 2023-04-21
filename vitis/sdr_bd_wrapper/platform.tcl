@@ -55,3 +55,27 @@ platform generate -domains
 platform config -updatehw {/home/sklat/Pulpit/simple_sdr/sdr/prj/sdr/sdr_bd_wrapper.xsa}
 platform generate -domains 
 platform clean
+platform active {sdr_bd_wrapper}
+platform config -updatehw {/home/sklat/Pulpit/simple_sdr/sdr/prj/sdr/sdr_bd_wrapper.xsa}
+platform config -updatehw {/home/sklat/Pulpit/simple_sdr/sdr/prj/sdr/sdr_bd_wrapper.xsa}
+platform generate
+platform active {sdr_bd_wrapper}
+platform config -updatehw {/home/sklat/Pulpit/simple_sdr/sdr/prj/sdr/sdr_bd_wrapper.xsa}
+platform generate -domains 
+platform config -updatehw {/home/sklat/Pulpit/simple_sdr/sdr/prj/sdr/sdr_bd_wrapper.xsa}
+platform generate -domains 
+platform clean
+platform clean
+platform generate
+platform active {sdr_bd_wrapper}
+platform config -updatehw {/home/sklat/Pulpit/simple_sdr/sdr/prj/sdr/sdr_bd_wrapper.xsa}
+platform generate -domains 
+platform config -updatehw {/home/sklat/Pulpit/simple_sdr/sdr/prj/sdr/sdr_bd_wrapper.xsa}
+platform clean
+platform generate
+platform config -updatehw {/home/sklat/Pulpit/simple_sdr/sdr/prj/sdr/sdr_bd_wrapper.xsa}
+platform generate -domains 
+platform clean
+platform generate
+platform clean
+platform generate

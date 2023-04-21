@@ -369,7 +369,7 @@ int32_t ad9361_init (struct ad9361_rf_phy **ad9361_phy, AD9361_InitParam *init_p
 
 	phy->rx_eq_2tx = false;
 
-	phy->current_table = RXGAIN_TBLS_END;
+	phy->current_table = TBL_200_1300_MHZ;//RXGAIN_TBLS_END;
 	phy->bypass_tx_fir = true;
 	phy->bypass_rx_fir = true;
 	phy->rate_governor = 1;
