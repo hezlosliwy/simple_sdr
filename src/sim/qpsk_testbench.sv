@@ -2,11 +2,9 @@
 
 module qpsk_testbench;
 
-localparam CLK_PERIOD = 130;
-localparam SAMPLE_PERIOD = 2;
+localparam CLK_PERIOD = 5;
 
 logic clk;
-logic s_clk;
 logic rst_n;
 logic i_I, i_Q;
 logic [11:0] o_I, o_Q;
@@ -19,13 +17,6 @@ initial begin : system_clock
     clk = 1'b0;
     forever begin
         clk = #(CLK_PERIOD/2) ~clk;
-    end
-end
-
-initial begin : sine_sampling_clock
-    s_clk = 1'b0;
-    forever begin
-        s_clk = #(SAMPLE_PERIOD/2) ~s_clk;
     end
 end
 
@@ -66,7 +57,6 @@ end
 qpsk_mod u_qpsk_mod (
     .clk        (clk),
     .rst_n      (rst_n),
-    .s_clk      (s_clk),
     .i_I        (i_I),
     .i_Q        (i_Q),
     .i_valid    (i_valid),
