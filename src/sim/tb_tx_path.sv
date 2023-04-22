@@ -1,6 +1,9 @@
 `timescale 1ns / 1ps
 
 module tb_tx_path;
+import logger_pkg::*;
+
+logger logger_local;
 
 localparam CLK_PERIOD = 20;
 localparam DATA_LEN   = 100;
@@ -13,6 +16,8 @@ logic i_valid;
 logic o_ready;
 logic o_valid;
 logic i_out_ready;
+
+string i_out_vect = "", q_out_vect = "";
 
 initial begin : system_clock
   clk = 1'b0;
@@ -31,16 +36,35 @@ task automatic parallel_input();
     if (o_ready) begin
       i_I = $random();
       i_Q = $random();
-      $display("%t \tI=%d \tQ=%d",$time,i_I,i_Q);
+      logger_local.log($sformatf("I=%d \tQ=%d",i_I,i_Q));
     end
     @(posedge clk);
   end
   i_out_ready = 1'b0;
   repeat(4) @(posedge clk);
+  logger_local.summary();
+  logger_local.log("Output recorded:");
+  logger_local.log({"I: ",i_out_vect});
+  logger_local.log({"Q: ",q_out_vect});
   $finish();
 endtask
 
+always@(posedge clk) begin : save_output;
+  @(posedge clk);
+  if (o_valid) begin
+    if (o_I == 12'h5a7) i_out_vect = {i_out_vect, "1.0,"};
+    else if (o_I == 12'ha59) i_out_vect = {i_out_vect, "-1.0,"};
+    else i_out_vect = {i_out_vect, "X.X,"};
+
+    if (o_Q == 12'h5a7) q_out_vect = {q_out_vect, "1.0,"};
+    else if (o_Q == 12'ha59) q_out_vect = {q_out_vect, "-1.0,"};
+    else q_out_vect = {q_out_vect, "X.X,"};
+  end
+end
+
 initial begin : main
+  logger_local.init();
+
   rst = 1'b1;
   i_out_ready = 1'b0;
   repeat(2)@(posedge clk);
