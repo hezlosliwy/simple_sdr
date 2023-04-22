@@ -5,7 +5,8 @@ module qpsk_mod(
   input wire i_Q,
   input wire i_valid,
 
-  output reg o_ready,
+  input wire i_out_ready,
+  output reg o_ready_for_input,
   output reg o_valid,
   output reg signed [11:0] o_I,
   output reg signed [11:0] o_Q
@@ -43,6 +44,6 @@ always@(posedge clk or negedge rst_n) begin
   end
 end
 
-assign o_ready = rst_n;
+assign o_ready_for_input = rst_n & i_out_ready;
 
 endmodule

@@ -11,6 +11,7 @@ logic [11:0] o_I, o_Q;
 logic i_valid;
 logic o_ready;
 logic o_valid;
+logic i_out_ready;
 
 logic [7:0] vdata;
 
@@ -31,13 +32,17 @@ task automatic parallel_input(input [15:0] data);
         $display("I=%d \tQ=%d",i_I,i_Q);
         @(posedge clk);
     end
+    i_out_ready = 1'b0;
+    repeat(4) @(posedge clk);
     $finish();
 endtask
 
 initial begin : main
     rst_n = 1'b0;
+    i_out_ready = 1'b0;
     repeat(2)@(posedge clk);
     rst_n = 1'b1;
+    i_out_ready = 1'b1;
     forever begin 
         parallel_input(16'b1110100101111000);
     end
@@ -61,7 +66,8 @@ qpsk_mod u_qpsk_mod (
     .i_I        (i_I),
     .i_Q        (i_Q),
     .i_valid    (i_valid),
-    .o_ready    (o_ready),
+    .i_out_ready(i_out_ready),
+    .o_ready_for_input(o_ready),
     .o_valid    (o_valid),
     .o_I        (o_I),
     .o_Q        (o_Q)
