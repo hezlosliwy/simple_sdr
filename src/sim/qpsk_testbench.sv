@@ -10,6 +10,7 @@ logic i_I, i_Q;
 logic [11:0] o_I, o_Q;
 logic i_valid;
 logic o_ready;
+logic o_valid;
 
 logic [7:0] vdata;
 
@@ -61,6 +62,7 @@ qpsk_mod u_qpsk_mod (
     .i_Q        (i_Q),
     .i_valid    (i_valid),
     .o_ready    (o_ready),
+    .o_valid    (o_valid),
     .o_I        (o_I),
     .o_Q        (o_Q)
 );

@@ -11,7 +11,7 @@ module qpsk_mod(
   output reg signed [11:0] o_Q
 );
 
-reg signed [11:0][1:0] amplitudes = {12'h5a7, 12'ha59};
+const logic [11:0] ampl = 12'd1447;
 
 always@(posedge clk or negedge rst_n) begin
   if (!rst_n) begin 
@@ -23,20 +23,20 @@ always@(posedge clk or negedge rst_n) begin
     if (i_valid) begin
       o_valid <= 1'b1;
       if ({i_I, i_Q} == 2'b01) begin
-        o_I <= amplitudes[0];
-        o_Q <= amplitudes[1];
+        o_I <= ampl;
+        o_Q <= -ampl;
       end
       else if ({i_I, i_Q} == 2'b10) begin
-        o_I <= amplitudes[1];
-        o_Q <= amplitudes[0];
+        o_I <= -ampl;
+        o_Q <= ampl;
       end
       else if ({i_I, i_Q} == 2'b11) begin
-        o_I <= amplitudes[1];
-        o_Q <= amplitudes[1];
+        o_I <= -ampl;
+        o_Q <= -ampl;
       end
       else if ({i_I, i_Q} == 2'b00) begin
-        o_I <= amplitudes[0];
-        o_Q <= amplitudes[0];
+        o_I <= ampl;
+        o_Q <= ampl;
       end
     end
     else o_valid <= 1'b0;
