@@ -1,21 +1,21 @@
 module qpsk_mod(
-    input logic clk,
-    input logic rst_n,
-    input logic i_I,
-    input logic i_Q,
-    input logic i_valid,
+    input wire clk,
+    input wire rst_n,
+    input wire i_I,
+    input wire i_Q,
+    input wire i_valid,
 
-    output logic o_ready,
-    output logic signed [11:0] o_I,
-    output logic signed [11:0] o_Q
+    output reg o_ready,
+    output reg signed [11:0] o_I,
+    output reg signed [11:0] o_Q
 );
 
-logic signed [11:0] amplitudes [2] = {12'h5a7, 12'ha59};
+reg signed [11:0][1:0] amplitudes = {12'h5a7, 12'ha59};
 
-always_ff @(posedge clk or negedge rst_n) begin
+always@(posedge clk or negedge rst_n) begin
     if (!rst_n) begin 
-        o_I <= '0;
-        o_Q <= '0;
+        o_I <= 12'b0;
+        o_Q <= 12'b0;
     end
     else begin 
         if ({i_I, i_Q} == 2'b01) begin
