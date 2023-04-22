@@ -63,3 +63,6 @@ for i in range(62):
 
 # r = ccsds.encode([1 for i in range(51)])
 # print(r)
+# v = [np.random.choice([0,1]) for i in range(51)]
+# r = ccsds.encode(v)
+# print("".join([f"{i}" for i in v]), "".join([f"{i}" for i in r]))

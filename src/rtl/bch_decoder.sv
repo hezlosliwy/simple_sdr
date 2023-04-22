@@ -56,9 +56,8 @@ module bch_decoder (
     begin
       S1 = in_data[i] ? S1 ^ a1 : S1;
       S3 = in_data[i] ? S3 ^ a3 : S3;
-      a1 = mult(a1, 6'b000010);
-      a3 = mult(a3, 6'b001000);
-    //   $display("i = %d, %b", i, a1);
+      a1 = mult_by_a(a1);
+      a3 = mult_by_a(mult_by_a(mult_by_a(a3)));
     end
     sig1 = S1;
     sig2 = mult(S1,S1) ^ mult(S3,inverse(S1));
@@ -72,8 +71,6 @@ module bch_decoder (
       end
       e = mult(e, 6'b100001);
     end
-    $display("e*e-1, %b", mult(6'b10, 6'b100001));
-    $display("End");
   end
 
 endmodule
