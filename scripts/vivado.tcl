@@ -17,4 +17,7 @@ source ./../../src/bd/sdr_bd.tcl
 make_wrapper -files [get_files ./bd/sdr_bd/sdr_bd.bd] -top
 add_files -norecurse ./bd/sdr_bd/hdl/sdr_bd_wrapper.v
 
+# Add block design generated modules
+add_files -fileset ./../src/xci/
+
 quit
