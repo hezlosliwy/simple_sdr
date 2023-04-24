@@ -2,8 +2,14 @@
 
 
 module bch_decoder (
-    input  wire [62:0] in_data,
-    output reg         out_data
+    input wire clk,
+    input wire rst,
+    input wire in_valid,
+    input wire in_data,
+    input wire in_ready,
+    input wire out_valid,
+    input wire out_data,
+    input wire out_ready
   );
   function logic[5:0] mult_by_a(logic[5:0] a); // a * x mod x6+x+1
     return {a[4:0],1'b0}^{4'b0, a[5], a[5]};
@@ -42,35 +48,84 @@ module bch_decoder (
     return inv_table[a];
   endfunction
 
+  typedef enum { ST_IDLE, ST_SYNDROME, ST_EDP, ST_FIND_ERRORS, ST_UNLOAD } t_bch_state;
+  t_bch_state bch_state;
+
   logic [5:0] S1, S3;
   logic [5:0] a1, a3;
   logic [5:0] sig1, sig2;
   logic [5:0] e, err_code;
 
-  always @(in_data) begin
-    a1 = 6'b000001;
-    a3 = 6'b000001;
-    S1 = 6'b000000;
-    S3 = 6'b000000;
-    for(int i = 0;i<63;i=i+1)
-    begin
-      S1 = in_data[i] ? S1 ^ a1 : S1;
-      S3 = in_data[i] ? S3 ^ a3 : S3;
-      a1 = mult_by_a(a1);
-      a3 = mult_by_a(mult_by_a(mult_by_a(a3)));
-    end
-    sig1 = S1;
-    sig2 = mult(S1,S1) ^ mult(S3,inverse(S1));
+  logic [5:0] syndrome_cnt;
+  logic [5:0] err_cnt;
 
-    e=6'b1;
-    for(int i = 0; i<63;i=i+1)
-    begin
-      err_code = mult(sig1,e) ^ mult(sig2,mult(e,e));
-      if(err_code==6'b1) begin
-        $display("Error on %d, %6b", i, err_code);
-      end
-      e = mult(e, 6'b100001);
+  always @(posedge clk) begin
+    if(rst) begin
+      a1 <= 6'b000001;
+      a3 <= 6'b000001;
+      S1 <= 6'b000000;
+      S3 <= 6'b000000;
+      syndrome_cnt <= 6'b0;
+    end
+    else begin
+      case (bch_state)
+        ST_IDLE:
+          if(in_valid) bch_state <= ST_SYNDROME;
+        ST_SYNDROME: begin
+          if(in_valid) begin
+            S1 = in_data ? S1 ^ a1 : S1;
+            S3 = in_data ? S3 ^ a3 : S3;
+          end
+          if(syndrome_cnt==6'd62) begin
+            bch_state <= ST_EDP;
+          end
+        end
+        ST_EDP: begin
+          sig1 <= S1;
+          sig2 <= mult(S1,S1) ^ mult(S3,inverse(S1));
+          if(S1!=0 & S3!=0) begin
+            bch_state <= ST_FIND_ERRORS;
+            e <= 6'b1;
+          end else begin
+            bch_state <= ST_UNLOAD;
+          end
+        end
+        ST_FIND_ERRORS: begin
+          err_cnt <= err_cnt + 1;
+          err_code <= mult(sig1,e) ^ mult(sig2,mult(e,e));
+          e <= mult(e, 6'b100001);
+          $display("Error on %d, %6b", err_cnt, err_code);
+        end
+        ST_UNLOAD:
+          bch_state <= ST_IDLE;
+      endcase
     end
   end
+
+  // always @(in_data) begin
+  //   a1 = 6'b000001;
+  //   a3 = 6'b000001;
+  //   S1 = 6'b000000;
+  //   S3 = 6'b000000;
+  //   for(int i = 0;i<63;i=i+1)
+  //   begin
+  //     S1 = in_data ? S1 ^ a1 : S1;
+  //     S3 = in_data ? S3 ^ a3 : S3;
+  //     a1 = mult_by_a(a1);
+  //     a3 = mult_by_a(mult_by_a(mult_by_a(a3)));
+  //   end
+  //   sig1 = S1;
+  //   sig2 = mult(S1,S1) ^ mult(S3,inverse(S1));
+
+  //   e=6'b1;
+  //   for(int i = 0; i<63;i=i+1)
+  //   begin
+  //     err_code = mult(sig1,e) ^ mult(sig2,mult(e,e));
+  //     if(err_code==6'b1) begin
+  //       $display("Error on %d, %6b", i, err_code);
+  //     end
+  //     e = mult(e, 6'b100001);
+  //   end
+  // end
 
 endmodule
