@@ -14,7 +14,7 @@ module qpsk_mod(
 
 const logic [11:0] ampl = 12'd1447;
 
-always@(posedge clk or negedge rst_n) begin
+always@(posedge clk) begin
   if (!rst_n) begin 
     o_I <= 12'b0;
     o_Q <= 12'b0;

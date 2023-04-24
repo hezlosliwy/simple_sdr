@@ -1,4 +1,4 @@
-module TX_path_top(
+module TX_path_top (
     input wire clk,
     input wire rst,
     //internal output stream
@@ -21,8 +21,8 @@ module TX_path_top(
     input wire in_Q  // temporary
 );
 
-wire qpsk_out_valid, header_ready;
-wire [11:0] i_out_data, q_out_data;
+wire qpsk_out_valid, header_ready, header_out_valid, delay_ready;
+wire [11:0] i_out_data, q_out_data, i_out_header, q_out_header;
 
 qpsk_mod my_qpsk(
   .clk(clk),
@@ -44,11 +44,24 @@ header my_header(
   .in_i(i_out_data),
   .in_q(q_out_data),
   .in_ready(header_ready),
-  .out_valid(out_valid),
-  .out_i(out_data[23:12]),
-  .out_q(out_data[11:0]),
-  .out_ready(out_ready)
+  .out_valid(header_out_valid),
+  .out_i(i_out_header),
+  .out_q(q_out_header),
+  .out_ready(delay_ready)
 );
 
+hold_8_cycles my_delay (
+  .clk(clk),
+  .rst(rst),
+  .i_I(i_out_header),
+  .i_Q(q_out_header),
+  .i_valid(header_out_valid),
+
+  .i_out_ready(out_ready),
+  .o_ready_for_input(delay_ready),
+  .o_valid(out_valid),
+  .o_I(out_data[23:12]),
+  .o_Q(out_data[11:0])
+);
 
 endmodule

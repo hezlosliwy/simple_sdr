@@ -6,7 +6,7 @@ import logger_pkg::*;
 logger logger_local;
 
 localparam CLK_PERIOD = 20;
-localparam DATA_LEN   = 100;
+localparam DATA_LEN   = 100*8;
 
 logic clk;
 logic rst;
@@ -17,6 +17,10 @@ logic o_ready;
 logic o_valid;
 logic i_out_ready;
 
+logic fir_ready;
+logic fir_o_data_valid;
+logic [15:0] fir_I_output, fir_Q_output;
+
 string i_out_vect = "", q_out_vect = "";
 
 initial begin : system_clock
@@ -25,8 +29,6 @@ initial begin : system_clock
     clk = #(CLK_PERIOD/2) ~clk;
   end
 end
-
-logic [14:0] data_i = '0;
 
 task automatic parallel_input();
   i_valid = 1'b1;
@@ -67,7 +69,7 @@ initial begin : main
 
   rst = 1'b1;
   i_out_ready = 1'b0;
-  repeat(2)@(posedge clk);
+  repeat(4)@(posedge clk);
   rst = 1'b0;
   i_out_ready = 1'b1;
   forever begin 
@@ -75,7 +77,7 @@ initial begin : main
   end
 end
 
-TX_path_top u_qpsk_mod (
+TX_path_top DUT (
   .clk(clk),
   .rst(rst),
   //internal output stream
@@ -84,7 +86,7 @@ TX_path_top u_qpsk_mod (
   // (* X_INTERFACE_INFO = "xilinx.com:interface:axis:1.0 axis_out TDATA" *)
   .out_data({o_I, o_Q}), //i q
   //(* X_INTERFACE_INFO = "xilinx.com:interface:axis:1.0 axis_out TREADY" *)
-  .out_ready(i_out_ready),
+  .out_ready(fir_ready),
   //internal input stream
   // (* X_INTERFACE_INFO = "xilinx.com:interface:axis:1.0 axis_in TVALID" *)
   .in_valid(i_valid),
@@ -98,6 +100,17 @@ TX_path_top u_qpsk_mod (
   .in_Q(i_Q)  // temporary
 );
 
+fir_compiler_0 my_fir (
+  .s_axis_data_tdata  ({{4'h0},o_I,{4'h0},o_Q}),
+  .s_axis_data_tready (fir_ready),
+  .s_axis_data_tvalid (o_valid),
+  .aclk               (clk),
+  .aresetn            (~rst),
+
+  .m_axis_data_tdata  ({fir_I_output,fir_Q_output}),
+  .m_axis_data_tready (i_out_ready),
+  .m_axis_data_tvalid (fir_o_data_valid)
+);
 
 
 endmodule

@@ -45,8 +45,9 @@ plt.plot(h_rrc, "x")
 
 # generate vector
 
-in_vect_i, in_vect_q = np.array([[i]*8 for i in np.random.choice([1.0, -1.0], size=in_len)]).flatten(), np.array([[i]*8 for i in np.random.choice([1.0, -1.0], size=in_len)]).flatten()
-
+# in_vect_i, in_vect_q = np.array([[i]*8 for i in np.random.choice([1.0, -1.0], size=in_len)]).flatten(), np.array([[i]*8 for i in np.random.choice([1.0, -1.0], size=in_len)]).flatten()
+in_vect_i = [1.0,-1.0,1.0,-1.0,1.0,1.0,-1.0,-1.0,-1.0,-1.0,1.0,1.0,-1.0,1.0,-1.0,-1.0,1.0,-1.0,-1.0,1.0,1.0,-1.0,1.0,-1.0,1.0,-1.0,1.0,1.0,1.0,-1.0,-1.0,-1.0,-1.0,-1.0,-1.0,1.0,-1.0,-1.0,-1.0,-1.0,1.0,-1.0,-1.0,1.0,1.0,-1.0,-1.0,1.0,1.0,1.0]
+in_vect_q = [1.0,-1.0,1.0,-1.0,1.0,1.0,-1.0,-1.0,-1.0,-1.0,1.0,1.0,-1.0,1.0,-1.0,1.0,-1.0,1.0,-1.0,1.0,-1.0,1.0,-1.0,-1.0,1.0,1.0,1.0,-1.0,1.0,-1.0,1.0,-1.0,-1.0,1.0,1.0,1.0,-1.0,-1.0,1.0,1.0,1.0,-1.0,1.0,1.0,-1.0,1.0,1.0,-1.0,-1.0,-1.0]
 out_vect_i, out_vect_q = np.correlate(in_vect_i, h_rrc), np.correlate(in_vect_q, h_rrc) # *(2**11-1) *(2**11-1)
 
 #save vectors
@@ -54,10 +55,10 @@ out_vect_i, out_vect_q = np.correlate(in_vect_i, h_rrc), np.correlate(in_vect_q,
 save_vector_to_file([in_vect_i, in_vect_q], "vectors.in")
 save_vector_to_file([out_vect_i, out_vect_q], "vectors.out")
 
-# plt.figure()
-# plt.plot(in_vect_i, "x")
+plt.figure()
+plt.plot(in_vect_i, "x")
 
-# plt.figure()
-# plt.plot(np.abs(np.fft.fft(out_vect_i)), "x")
+plt.figure()
+plt.plot(np.abs(np.fft.fft(out_vect_i)), "x")
 
-# plt.show()
+plt.show()
