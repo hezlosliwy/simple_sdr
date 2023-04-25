@@ -27,14 +27,14 @@ wire [11:0] i_out_data, q_out_data, i_out_header, q_out_header;
 qpsk_mod my_qpsk(
   .clk(clk),
   .rst_n(~rst),
-  .i_I(in_I),
-  .i_Q(in_Q),
-  .i_valid(in_valid),
-  .i_out_ready(header_ready),
-  .o_ready_for_input(in_ready),
-  .o_valid(qpsk_out_valid),
-  .o_I(i_out_data),
-  .o_Q(q_out_data)
+  .in_i(in_I),
+  .in_q(in_Q),
+  .in_valid(in_valid),
+  .in_ready(in_ready),
+  .out_ready(header_ready),
+  .out_valid(qpsk_out_valid),
+  .out_i(i_out_data),
+  .out_q(q_out_data)
 );
 
 header my_header(
@@ -53,15 +53,15 @@ header my_header(
 hold_8_cycles my_delay (
   .clk(clk),
   .rst(rst),
-  .i_I(i_out_header),
-  .i_Q(q_out_header),
-  .i_valid(header_out_valid),
+  .in_i(i_out_header),
+  .in_q(q_out_header),
+  .in_valid(header_out_valid),
+  .in_ready(delay_ready),
 
-  .i_out_ready(out_ready),
-  .o_ready_for_input(delay_ready),
-  .o_valid(out_valid),
-  .o_I(out_data[23:12]),
-  .o_Q(out_data[11:0])
+  .out_ready(out_ready),
+  .out_valid(out_valid),
+  .out_i(out_data[23:12]),
+  .out_q(out_data[11:0])
 );
 
 endmodule

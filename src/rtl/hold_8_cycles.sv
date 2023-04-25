@@ -2,40 +2,42 @@
 module hold_8_cycles (
   input wire clk,
   input wire rst,
-  input wire [11:0] i_I,
-  input wire [11:0] i_Q,
-  input wire i_valid,
 
-  input wire i_out_ready,
-  output reg o_ready_for_input,
-  output reg o_valid,
-  output reg signed [11:0] o_I,
-  output reg signed [11:0] o_Q
+  output wire in_ready,
+  input wire [11:0] in_i,
+  input wire [11:0] in_q,
+  input wire in_valid,
+
+  input wire out_ready,
+  output reg out_valid,
+  output reg signed [11:0] out_i,
+  output reg signed [11:0] out_q
 );
 
 logic [2:0] cnt;
 
+
+assign in_ready = (cnt == 3'b0) ? 1'b1 : 1'b0; 
+
 always@(posedge clk) begin
   if (rst) begin
-    o_I <= '0;
-    o_Q <= '0;
+    out_i <= '0;
+    out_q <= '0;
     cnt <= '0;
-    o_valid <= 1'b0;
-    o_ready_for_input <= 1'b0;
+    out_valid <= 1'b0;
   end
   else begin
-    o_valid <= 1'b0;
-    o_ready_for_input <= 1'b1;
-    if (i_valid == 1'b1 && cnt == 3'b0 && i_out_ready == 1'b1) begin
-      o_I <= i_I;
-      o_Q <= i_Q;
-      o_valid <= 1'b1;
-      cnt <= cnt + 1;
+    if (in_valid & in_ready) begin
+      out_i <= in_i;
+      out_q <= in_q;
+      out_valid <= 1'b1;
     end
-    else if (cnt != 3'b0) begin
-      o_ready_for_input <= 1'b0;
+    else if(in_ready) begin
+      out_valid <= 1'b0;
+    end
+
+    if(out_valid & out_ready) begin
       cnt <= cnt + 1;
-      o_valid <= 1'b1;
     end
   end
 end

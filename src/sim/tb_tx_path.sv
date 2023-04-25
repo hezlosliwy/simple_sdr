@@ -1,15 +1,15 @@
 `timescale 1ns / 1ps
 
 module tb_tx_path;
-import logger_pkg::*;
+// import logger_pkg::*;
 
-logger logger_local;
+// logger logger_local;
 
 localparam CLK_PERIOD = 20;
 localparam DATA_LEN   = 100*8;
 
-logic clk;
-logic rst;
+logic clk, out_clk;
+logic rst = 1'b1;
 logic i_I, i_Q;
 logic [11:0] o_I, o_Q;
 logic i_valid;
@@ -20,6 +20,9 @@ logic i_out_ready;
 logic fir_ready;
 logic fir_o_data_valid;
 logic [15:0] fir_I_output, fir_Q_output;
+logic [11:0] fifo_I_output, fifo_Q_output;
+
+logic [7:0] in_stream_data;
 
 string i_out_vect = "", q_out_vect = "";
 
@@ -30,26 +33,61 @@ initial begin : system_clock
   end
 end
 
-task automatic parallel_input();
-  i_valid = 1'b1;
-  i_I = 1'b0;
-  i_Q = 1'b0;
-  for(int i=0; i < (DATA_LEN); i=i+1) begin
-    if (o_ready) begin
-      i_I = $random();
-      i_Q = $random();
-      logger_local.log($sformatf("I=%d \tQ=%d",i_I,i_Q));
-    end
-    @(posedge clk);
+initial begin
+  out_clk = 1'b0;
+  forever begin
+    out_clk = #(CLK_PERIOD/16) ~out_clk;
   end
-  i_out_ready = 1'b0;
-  repeat(4) @(posedge clk);
-  logger_local.summary();
-  logger_local.log("Output recorded:");
-  logger_local.log({"I: ",i_out_vect});
-  logger_local.log({"Q: ",q_out_vect});
-  $finish();
-endtask
+end
+
+// task automatic parallel_input();
+//   i_valid = 1'b1;
+//   i_I = 1'b0;
+//   i_Q = 1'b0;
+//   for(int i=0; i < (DATA_LEN); i=i+1) begin
+//     if (o_ready) begin
+//       i_I = $random();
+//       i_Q = $random();
+//       logger_local.log($sformatf("I=%d \tQ=%d",i_I,i_Q));
+//     end
+//     @(posedge clk);
+//   end
+//   // i_out_ready = 1'b0;
+//   repeat(4) @(posedge clk);
+//   logger_local.summary();
+//   logger_local.log("Output recorded:");
+//   logger_local.log({"I: ",i_out_vect});
+//   logger_local.log({"Q: ",q_out_vect});
+//   // $finish();
+// endtask
+
+axis_fsource #(
+    .DATA_WIDTH_IN_BYTES(1),
+    .FILE_NAME("tb.in")
+) in_source
+  (
+    .clk(clk),
+    .rst(rst),
+    .out_data(in_stream_data),
+    .out_valid(in_stream_valid),
+    .out_ready(in_stream_ready),
+    .eof()
+  );
+
+logic [1:0] in_data_cnt;
+assign in_stream_ready = in_data_cnt==0 & o_ready;
+always @(posedge clk) begin
+  if(rst) begin
+    in_data_cnt <= 2'b0;
+  end
+  else if(o_ready) begin
+    in_data_cnt <= in_data_cnt + 1;
+    if(in_data_cnt==0) begin
+      i_I <= in_stream_data[2*in_data_cnt];
+      i_Q <= in_stream_data[2*in_data_cnt+1];
+    end
+  end
+end
 
 always@(posedge clk) begin : save_output;
   @(posedge clk);
@@ -65,16 +103,11 @@ always@(posedge clk) begin : save_output;
 end
 
 initial begin : main
-  logger_local.init();
+  // logger_local.init();
 
   rst = 1'b1;
-  i_out_ready = 1'b0;
-  repeat(4)@(posedge clk);
+  repeat(4*16)@(posedge clk);
   rst = 1'b0;
-  i_out_ready = 1'b1;
-  forever begin 
-    parallel_input();
-  end
 end
 
 TX_path_top DUT (
@@ -89,7 +122,7 @@ TX_path_top DUT (
   .out_ready(fir_ready),
   //internal input stream
   // (* X_INTERFACE_INFO = "xilinx.com:interface:axis:1.0 axis_in TVALID" *)
-  .in_valid(i_valid),
+  .in_valid(1'b1),
   // (* X_INTERFACE_INFO = "xilinx.com:interface:axis:1.0 axis_in TDATA" *)
   .in_data(),
   // (* X_INTERFACE_INFO = "xilinx.com:interface:axis:1.0 axis_in TREADY" *)
@@ -112,5 +145,22 @@ fir_compiler_0 my_fir (
   .m_axis_data_tvalid (fir_o_data_valid)
 );
 
+fifo_async
+#(
+  .WRITE_DATA_WIDTH(24),
+  .READ_DATA_WIDTH(24),
+  .DATA_DEPTH(16)
+) in_fifo
+(
+    .rst(rst),
+    .in_clk(clk),
+    .in_valid(fir_o_data_valid),
+    .in_ready(i_out_ready),
+    .in_data({fir_I_output[11:0],fir_Q_output[11:0]}),
+    .out_clk(out_clk),
+    .out_valid(fifo_out_valid),
+    .out_ready(1'b1),
+    .out_data({fifo_I_output,fifo_Q_output})
+);
 
 endmodule
