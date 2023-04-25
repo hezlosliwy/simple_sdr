@@ -36,7 +36,7 @@ module bch_encoder(
                 end
                 WORK: begin
                         counter <= ((ready_in)&&(valid_in))?(counter + 1)%63:counter;
-                        state<=((counter < 50)&&(valid_in))?WORK:REST;
+                        state<=((counter < 50))?WORK:REST;
                         
                 end
                 REST: begin
@@ -58,7 +58,7 @@ module bch_encoder(
     
     
     always @ (posedge clk) begin
-        if(state == WORK)begin
+        if(state == WORK && (ready_in)&&(valid_in) )begin
             tmp[62-counter]<=data_in;
             data_out <= data_in;
             rest[0] <= data_in ^ rest[11]; 
@@ -74,7 +74,7 @@ module bch_encoder(
             rest[10] <= rest[9] ^ (data_in  ^ rest[11]);
             rest[11] <= rest[10];
         end
-        else if(state == REST)begin
+        else if(state == REST && (ready_in))begin
             tmp[62-counter]<=rest[62-counter];
             data_out_all <= {data_in_all[50:0],rest[11:0]};//all data out
             data_out<=rest[62-counter];
