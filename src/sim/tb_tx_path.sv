@@ -19,8 +19,9 @@ logic i_out_ready;
 
 logic fir_ready;
 logic fir_o_data_valid;
-logic [15:0] fir_I_output, fir_Q_output;
+logic [11:0] fir_I_output, fir_Q_output;
 logic [11:0] fifo_I_output, fifo_Q_output;
+logic [15:0] out_stream_data_i, out_stream_data_q;
 
 logic [7:0] in_stream_data;
 
@@ -36,7 +37,7 @@ end
 initial begin
   out_clk = 1'b0;
   forever begin
-    out_clk = #(CLK_PERIOD/16) ~out_clk;
+    out_clk = #(CLK_PERIOD/2) ~out_clk;
   end
 end
 
@@ -133,17 +134,29 @@ TX_path_top DUT (
   .in_Q(i_Q)  // temporary
 );
 
-fir_compiler_0 my_fir (
-  .s_axis_data_tdata  ({{4'h0},o_I,{4'h0},o_Q}),
-  .s_axis_data_tready (fir_ready),
-  .s_axis_data_tvalid (o_valid),
-  .aclk               (clk),
-  .aresetn            (~rst),
+// fir_compiler_0 my_fir (
+//   .s_axis_data_tdata  ({{4'h0},o_I,{4'h0},o_Q}),
+//   .s_axis_data_tready (fir_ready),
+//   .s_axis_data_tvalid (o_valid),
+//   .aclk               (clk),
+//   .aresetn            (~rst),
 
-  .m_axis_data_tdata  ({fir_I_output,fir_Q_output}),
-  .m_axis_data_tready (i_out_ready),
-  .m_axis_data_tvalid (fir_o_data_valid)
-);
+//   .m_axis_data_tdata  ({fir_I_output,fir_Q_output}),
+//   .m_axis_data_tready (i_out_ready),
+//   .m_axis_data_tvalid (fir_o_data_valid)
+// );
+
+fir my_fir(
+    .clk(clk),
+    .rst(rst),
+    .in_valid(o_valid),
+    .in_data(o_I),
+    .in_ready(fir_ready),
+    .out_valid(fir_o_data_valid),
+    .out_data(fir_I_output),
+    .out_ready(i_out_ready)
+  );
+
 
 fifo_async
 #(
@@ -162,5 +175,19 @@ fifo_async
     .out_ready(1'b1),
     .out_data({fifo_I_output,fifo_Q_output})
 );
+
+axis_fsource #(
+    .DATA_WIDTH_IN_BYTES(4),
+    .FILE_NAME("tb.out")
+) out_source
+  (
+    .clk(clk),
+    .rst(rst),
+    .out_data({out_stream_data_i, out_stream_data_q}),
+    .out_valid(out_stream_valid),
+    .out_ready(fifo_out_valid),
+    .eof()
+  );
+
 
 endmodule
