@@ -20,7 +20,7 @@ module bch_encoder(
     reg [62:0] tmp = 0; 
     reg [12:0] rest = 0; 
  
-    always @ (posedge clk or posedge rst ) begin
+    always @ (posedge clk) begin
         if(rst)begin
             state <= IDLE;
             counter <= 0;
@@ -31,23 +31,19 @@ module bch_encoder(
             case (state)
                 IDLE: begin
                     if(valid_in && ready_in == 1)begin
-                        ready_out<=1;
                         state<=WORK;
                     end
                 end
                 WORK: begin
-                        counter <= (ready_in)?(counter + 1)%63:counter;
-                        ready_out<=(counter < 50)?1:0;
-                        state<=(counter < 50)?WORK:REST;
+                        counter <= ((ready_in)&&(valid_in))?(counter + 1)%63:counter;
+                        state<=((counter < 50)&&(valid_in))?WORK:REST;
                         
                 end
                 REST: begin
-                        ready_out<=0;
                         state<=(counter <= 62)?REST:RESET;
                         counter <= (ready_in)?(counter + 1):counter;
                 end
                 RESET: begin
-                        ready_out<=0;
                         state<=IDLE;
                         rest <=0;
                         tmp<=0;
@@ -57,7 +53,10 @@ module bch_encoder(
             endcase    
         end    
     end
-        
+    
+    assign ready_out = ((state==WORK)&&ready_in)?1 :0;
+    
+    
     always @ (posedge clk) begin
         if(state == WORK)begin
             tmp[62-counter]<=data_in;
