@@ -38,7 +38,7 @@ end
 initial begin
   out_clk = 1'b0;
   forever begin
-    out_clk = #(CLK_PERIOD/16) ~out_clk;
+    out_clk = #(CLK_PERIOD/2*8) ~out_clk;
   end
 end
 
@@ -87,7 +87,7 @@ always @(posedge clk) begin
   if(rst) begin
     in_data_cnt <= 2'b0;
   end
-  else if(o_ready) begin
+  else if(i_out_ready) begin
     in_data_cnt <= in_data_cnt + 1;
     if(in_data_cnt==0) begin
       in_valid_dut <= 1'b1;
@@ -192,7 +192,7 @@ axis_fsource #(
     .FILE_NAME("tb.out")
 ) out_source
   (
-    .clk(clk),
+    .clk(out_clk),
     .rst(rst),
     .out_data({out_stream_data_i, out_stream_data_q}),
     .out_valid(out_stream_valid),
