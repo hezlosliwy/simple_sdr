@@ -38,7 +38,7 @@ end
 initial begin
   out_clk = 1'b0;
   forever begin
-    out_clk = #(CLK_PERIOD/2) ~out_clk;
+    out_clk = #(CLK_PERIOD/16) ~out_clk;
   end
 end
 
@@ -143,26 +143,18 @@ TX_path_top DUT (
   .in_Q(i_Q)  // temporary
 );
 
-// fir_compiler_0 my_fir (
-//   .s_axis_data_tdata  ({{4'h0},o_I,{4'h0},o_Q}),
-//   .s_axis_data_tready (fir_ready),
-//   .s_axis_data_tvalid (o_valid),
-//   .aclk               (clk),
-//   .aresetn            (~rst),
 
-//   .m_axis_data_tdata  ({fir_I_output,fir_Q_output}),
-//   .m_axis_data_tready (i_out_ready),
-//   .m_axis_data_tvalid (fir_o_data_valid)
-// );
 
 fir my_fir(
     .clk(clk),
     .rst(rst),
     .in_valid(o_valid),
-    .in_data(o_I),
+    .in_data_i(o_I),
+    .in_data_q(o_Q),
     .in_ready(fir_ready),
     .out_valid(fir_o_data_valid),
-    .out_data(fir_I_output),
+    .out_data_i(fir_I_output),
+    .out_data_q(fir_Q_output),
     .out_ready(i_out_ready)
   );
 
@@ -188,7 +180,7 @@ fifo_async
     .in_clk(clk),
     .in_valid(fir_o_data_valid),
     .in_ready(i_out_ready),
-    .in_data({fir_I_output[11:0],fir_Q_output[11:0]}),
+    .in_data({fir_I_output,fir_Q_output}),
     .out_clk(out_clk),
     .out_valid(fifo_out_valid),
     .out_ready(1'b1),

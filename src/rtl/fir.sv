@@ -3,14 +3,18 @@ module fir (
     input wire clk,
     input wire rst,
     input wire in_valid,
-    input logic signed [11:0] in_data,
+    input logic signed [11:0] in_data_i,
+    input logic signed [11:0] in_data_q,
     output wire in_ready,
     output reg out_valid,
-    output logic signed [11:0] out_data,
+    output logic signed [11:0] out_data_i,
+    output logic signed [11:0] out_data_q,
     input wire out_ready
   );
 
-  real regs [63:0];
+  real regs_i [63:0];
+  real regs_q [63:0];
+
   real coefs [0:63] = {
     -6.518263187043542e-19, -7.986557578197472e-04, -0.002095202987291, -0.003667107969085,
     -0.005116643415385, -0.005928729916395, -0.005574799504880, -0.003647417401953,
@@ -36,14 +40,17 @@ module fir (
   always @(posedge clk) begin
     if(rst) begin
       for(int i =0;i<64;i=i+1) begin
-        regs[i] <= 0;
+        regs_i[i] <= 0;
+        regs_q[i] <= 0;
       end
     end
     else begin
       for(int i =0;i<64;i=i+1) begin
-        regs[i] <= (i>0) ? (coefs[i]*in_data + regs[i-1]) : coefs[i]*in_data;
+        regs_i[i] <= (i>0) ? (coefs[i]*in_data_i + regs_i[i-1]) : coefs[i]*in_data_i;
+        regs_q[i] <= (i>0) ? (coefs[i]*in_data_q + regs_q[i-1]) : coefs[i]*in_data_q;
       end
-      out_data <= regs[63]/4;
+      out_data_i <= regs_i[63]/4;
+      out_data_q <= regs_q[63]/4;
     end
   end
 
