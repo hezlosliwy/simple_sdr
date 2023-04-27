@@ -55,7 +55,7 @@ module header (
         ST_PAYLOAD: begin
           if(in_valid & out_ready) begin
             payload_cnt <= payload_cnt + 1;
-            if(payload_cnt == 8'd60)
+            if(payload_cnt == 8'd62)
             begin
               payload_cnt <= 8'b0;
               header_state <= in_valid ? ST_SOF : ST_IDLE;

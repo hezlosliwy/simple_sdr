@@ -23,7 +23,8 @@ logic [11:0] fir_I_output, fir_Q_output;
 logic [11:0] fifo_I_output, fifo_Q_output;
 logic [15:0] out_stream_data_i, out_stream_data_q;
 
-logic [7:0] in_stream_data;
+logic [7:0] in_stream_data, in_stream_data_int;
+logic in_valid_dut;
 
 string i_out_vect = "", q_out_vect = "";
 
@@ -77,6 +78,11 @@ axis_fsource #(
 
 logic [1:0] in_data_cnt;
 assign in_stream_ready = in_data_cnt==0 & o_ready;
+
+assign i_I = in_stream_data_int[7];
+assign i_Q = in_stream_data_int[6];
+
+
 always @(posedge clk) begin
   if(rst) begin
     in_data_cnt <= 2'b0;
@@ -84,8 +90,11 @@ always @(posedge clk) begin
   else if(o_ready) begin
     in_data_cnt <= in_data_cnt + 1;
     if(in_data_cnt==0) begin
-      i_I <= in_stream_data[2*in_data_cnt];
-      i_Q <= in_stream_data[2*in_data_cnt+1];
+      in_valid_dut <= 1'b1;
+      in_stream_data_int <= in_stream_data;
+    end
+    else begin
+      in_stream_data_int <= {in_stream_data_int[5:0], 2'b0};
     end
   end
 end
@@ -123,7 +132,7 @@ TX_path_top DUT (
   .out_ready(fir_ready),
   //internal input stream
   // (* X_INTERFACE_INFO = "xilinx.com:interface:axis:1.0 axis_in TVALID" *)
-  .in_valid(1'b1),
+  .in_valid(in_valid_dut),
   // (* X_INTERFACE_INFO = "xilinx.com:interface:axis:1.0 axis_in TDATA" *)
   .in_data(),
   // (* X_INTERFACE_INFO = "xilinx.com:interface:axis:1.0 axis_in TREADY" *)
@@ -157,6 +166,16 @@ fir my_fir(
     .out_ready(i_out_ready)
   );
 
+// fir my_fir(
+//   .clk(clk),
+//   .rst(rst),
+//   .in_valid(o_valid),
+//   .in_data(o_Q),
+//   .in_ready(fir_ready),
+//   .out_valid(fir_o_data_valid),
+//   .out_data(fir_I_output),
+//   .out_ready(i_out_ready)
+// );
 
 fifo_async
 #(

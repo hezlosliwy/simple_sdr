@@ -40,7 +40,7 @@ always@(posedge clk) begin
         out_q <= ampl;
       end
     end
-    else out_valid <= ~out_ready;
+    else out_valid <= out_valid ? ~out_ready : 0;
   end
 end
 

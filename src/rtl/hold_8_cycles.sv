@@ -36,7 +36,7 @@ always@(posedge clk) begin
       out_valid <= 1'b0;
     end
 
-    if(out_valid & out_ready) begin
+    if((out_valid | (cnt==0 & in_valid)) & out_ready) begin
       cnt <= cnt + 1;
     end
   end
