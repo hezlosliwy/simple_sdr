@@ -37,6 +37,9 @@ module fir (
   assign out_valid = 1'b1;
   assign in_ready = 1'b1;
 
+  assign out_data_i = regs_i[63]/4;
+  assign out_data_q = regs_q[63]/4;
+
   always @(posedge clk) begin
     if(rst) begin
       for(int i =0;i<64;i=i+1) begin
@@ -49,8 +52,6 @@ module fir (
         regs_i[i] <= (i>0) ? (coefs[i]*in_data_i + regs_i[i-1]) : coefs[i]*in_data_i;
         regs_q[i] <= (i>0) ? (coefs[i]*in_data_q + regs_q[i-1]) : coefs[i]*in_data_q;
       end
-      out_data_i <= regs_i[63]/4;
-      out_data_q <= regs_q[63]/4;
     end
   end
 
