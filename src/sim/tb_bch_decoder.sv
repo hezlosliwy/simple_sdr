@@ -3,29 +3,51 @@
 
 module tb_bch_decoder ();
 
-    logic[62:0] in_data;
+    logic[62:0] in_data, output_data;
     
     // assign in_data = 63'h7FFFFFFFFFFFFFFF;
-    assign in_data = 63'b011011100111100100011110000000011010101000111001110110010111100;
-    integer e1, e2;
-
+    integer e1=15, e2 = 58;
+    logic rst;
     logic clk = 0;
-
+    integer data_cnt = 0;
+    const logic [62:0] correct_data = 63'b011011100111100100011110000000011010101000111001110110010111100;
+    assign in_data = correct_data ^ (1<<(e1)) ^ (1<<(e2)); //63'h7FFFFFFFFFFFFFFF
+    assign in_valid = ~rst;
 initial begin
     forever begin
         clk = #10 ~clk;
     end
 end
 
+initial begin
+    rst = 1'b1;
+    repeat(3) @(posedge clk);
+    rst = 1'b0;
+end
+
 always @(posedge clk) begin
-    e1 = $urandom() % 63;
-    e2 = $urandom() % 63;
-    $display("Error 1: %d, error 2 %d", e1, e2);
+    if(data_cnt == 62 & ~rst) begin
+        e1 <= $urandom() % 63;
+        e2 <= $urandom() % 63;
+        $display("Error 1: %d, error 2 %d", e1, e2);
+    end
+    if(in_ready) begin
+        data_cnt = (data_cnt + 1) % 63;
+    end
+    if(out_valid) begin
+        output_data = {output_data[61:0], out_data};
+    end
 end
 
 bch_decoder DUT(
-    .in_data(in_data ^ (1<<e1) ^ (1<<e2)),
-    .out_data()
+    .rst(rst),
+    .clk(clk),
+    .in_valid(in_valid),
+    .in_data(in_data[data_cnt]),
+    .in_ready(in_ready),
+    .out_valid(out_valid),
+    .out_data(out_data),
+    .out_ready(out_ready)
 );
 
 endmodule

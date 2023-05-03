@@ -58,6 +58,12 @@ module bch_decoder (
 
   logic [5:0] syndrome_cnt;
   logic [5:0] err_cnt;
+  logic [62:0] data_reg;
+  assign err_found = (err_code==1);
+  assign out_data = data_reg[62] ^ (err_code==1);
+  assign in_ready = (bch_state == ST_SYNDROME);
+  assign out_valid =  (bch_state == ST_FIND_ERRORS) | (bch_state == ST_UNLOAD);
+  assign err_code = mult(sig1,e) ^ mult(sig2,mult(e,e));
 
   always @(posedge clk) begin
     if(rst) begin
@@ -66,18 +72,31 @@ module bch_decoder (
       S1 <= 6'b000000;
       S3 <= 6'b000000;
       syndrome_cnt <= 6'b0;
+      data_reg <= 63'b0;
+      err_cnt <= 0;
     end
     else begin
       case (bch_state)
         ST_IDLE:
-          if(in_valid) bch_state <= ST_SYNDROME;
+          if(in_valid) begin
+            bch_state <= ST_SYNDROME;
+            a1 <= 6'b000001;
+            a3 <= 6'b000001;
+            S1 <= 6'b000000;
+            S3 <= 6'b000000;
+          end
         ST_SYNDROME: begin
           if(in_valid) begin
-            S1 = in_data ? S1 ^ a1 : S1;
-            S3 = in_data ? S3 ^ a3 : S3;
-          end
-          if(syndrome_cnt==6'd62) begin
-            bch_state <= ST_EDP;
+            data_reg <= {data_reg[61:0], in_data};
+            S1 <= in_data ? (S1 ^ a1) : S1;
+            S3 <= in_data ? (S3 ^ a3) : S3;
+            a1 = mult_by_a(a1);
+            a3 = mult_by_a(mult_by_a(mult_by_a(a3)));
+            syndrome_cnt <= syndrome_cnt + 6'b1;
+            if(syndrome_cnt==6'd62) begin
+              syndrome_cnt <= 6'b0;
+              bch_state <= ST_EDP;
+            end
           end
         end
         ST_EDP: begin
@@ -91,13 +110,23 @@ module bch_decoder (
           end
         end
         ST_FIND_ERRORS: begin
-          err_cnt <= err_cnt + 1;
-          err_code <= mult(sig1,e) ^ mult(sig2,mult(e,e));
-          e <= mult(e, 6'b100001);
-          $display("Error on %d, %6b", err_cnt, err_code);
+          syndrome_cnt <= syndrome_cnt + 6'b1;
+          if(syndrome_cnt==6'd62) begin
+            syndrome_cnt <= 6'b0;
+            bch_state <= ST_IDLE;
+          end
+          e <= mult(e, inverse(6'b000010));
+          data_reg <= {data_reg[61:0], 1'b0};
+          // $display("Error on %d, %6b", err_cnt, err_code);
         end
-        ST_UNLOAD:
-          bch_state <= ST_IDLE;
+        ST_UNLOAD: begin
+          syndrome_cnt <= syndrome_cnt + 6'b1;
+          data_reg <= {data_reg[61:0], 1'b0};
+          if(syndrome_cnt==6'd62) begin
+            syndrome_cnt <= 6'b0;
+            bch_state <= ST_IDLE;
+          end
+        end
       endcase
     end
   end
