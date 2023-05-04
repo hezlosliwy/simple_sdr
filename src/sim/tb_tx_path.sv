@@ -12,10 +12,9 @@ logic clk, out_clk;
 logic rst = 1'b1;
 logic i_I, i_Q;
 logic [11:0] o_I, o_Q;
-logic i_valid;
-logic o_ready;
+logic dut_input_ready;
 logic o_valid;
-logic i_out_ready;
+logic fifo_input_ready;
 
 logic fir_ready;
 logic fir_o_data_valid;
@@ -47,14 +46,14 @@ end
 //   i_I = 1'b0;
 //   i_Q = 1'b0;
 //   for(int i=0; i < (DATA_LEN); i=i+1) begin
-//     if (o_ready) begin
+//     if (dut_input_ready) begin
 //       i_I = $random();
 //       i_Q = $random();
 //       logger_local.log($sformatf("I=%d \tQ=%d",i_I,i_Q));
 //     end
 //     @(posedge clk);
 //   end
-//   // i_out_ready = 1'b0;
+//   // fifo_input_ready = 1'b0;
 //   repeat(4) @(posedge clk);
 //   logger_local.summary();
 //   logger_local.log("Output recorded:");
@@ -77,7 +76,7 @@ axis_fsource #(
   );
 
 logic [1:0] in_data_cnt;
-assign in_stream_ready = in_data_cnt==0 & o_ready;
+assign in_stream_ready = in_data_cnt==0 & dut_input_ready;
 
 assign i_I = in_stream_data_int[7];
 assign i_Q = in_stream_data_int[6];
@@ -87,7 +86,7 @@ always @(posedge clk) begin
   if(rst) begin
     in_data_cnt <= 2'b0;
   end
-  else if(i_out_ready) begin
+  else if(fifo_input_ready) begin
     in_data_cnt <= in_data_cnt + 1;
     if(in_data_cnt==0) begin
       in_valid_dut <= 1'b1;
@@ -136,7 +135,7 @@ TX_path_top DUT (
   // (* X_INTERFACE_INFO = "xilinx.com:interface:axis:1.0 axis_in TDATA" *)
   .in_data(),
   // (* X_INTERFACE_INFO = "xilinx.com:interface:axis:1.0 axis_in TREADY" *)
-  .in_ready(o_ready),
+  .in_ready(dut_input_ready),
   //external output stream
   //external input stream
   .in_I(i_I), // temporary
@@ -145,29 +144,40 @@ TX_path_top DUT (
 
 
 
-fir my_fir(
-    .clk(clk),
-    .rst(rst),
-    .in_valid(o_valid),
-    .in_data_i(o_I),
-    .in_data_q(o_Q),
-    .in_ready(fir_ready),
-    .out_valid(fir_o_data_valid),
-    .out_data_i(fir_I_output),
-    .out_data_q(fir_Q_output),
-    .out_ready(i_out_ready)
-  );
-
 // fir my_fir(
-//   .clk(clk),
-//   .rst(rst),
-//   .in_valid(o_valid),
-//   .in_data(o_Q),
-//   .in_ready(fir_ready),
-//   .out_valid(fir_o_data_valid),
-//   .out_data(fir_I_output),
-//   .out_ready(i_out_ready)
-// );
+//     .clk(clk),
+//     .rst(rst),
+//     .in_valid(o_valid),
+//     .in_data_i(o_I),
+//     // .in_data_q(o_Q),
+//     .in_ready(fir_ready),
+//     .out_valid(fir_o_data_valid),
+//     .out_data_i(fir_I_output),
+//     // .out_data_q(fir_Q_output),
+//     .out_ready(fifo_input_ready)
+//   );
+
+fir_compiler_0 my_fir_I(
+  .aclk(clk),
+  .aresetn(~rst),
+  .s_axis_data_tvalid(o_valid),
+  .s_axis_data_tdata(o_I),
+  .s_axis_data_tready(fir_ready),
+  .m_axis_data_tvalid(fir_o_data_valid),
+  .m_axis_data_tdata(fir_I_output),
+  .m_axis_data_tready(fifo_input_ready)
+);
+
+fir_compiler_0 my_fir_Q(
+  .aclk(clk),
+  .aresetn(~rst),
+  .s_axis_data_tvalid(o_valid),
+  .s_axis_data_tdata(o_Q),
+  .s_axis_data_tready(fir_ready),
+  .m_axis_data_tvalid(fir_o_data_valid),
+  .m_axis_data_tdata(fir_Q_output),
+  .m_axis_data_tready(fifo_input_ready)
+);
 
 fifo_async
 #(
@@ -179,7 +189,7 @@ fifo_async
     .rst(rst),
     .in_clk(clk),
     .in_valid(fir_o_data_valid),
-    .in_ready(i_out_ready),
+    .in_ready(fifo_input_ready),
     .in_data({fir_I_output,fir_Q_output}),
     .out_clk(out_clk),
     .out_valid(fifo_out_valid),
