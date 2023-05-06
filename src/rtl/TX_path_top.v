@@ -44,24 +44,28 @@ header my_header(
   .in_i(i_out_data),
   .in_q(q_out_data),
   .in_ready(header_ready),
-  .out_valid(header_out_valid),
-  .out_i(i_out_header),
-  .out_q(q_out_header),
-  .out_ready(delay_ready)
-);
-
-hold_8_cycles my_delay (
-  .clk(clk),
-  .rst(rst),
-  .in_i(i_out_header),
-  .in_q(q_out_header),
-  .in_valid(header_out_valid),
-  .in_ready(delay_ready),
-
+  // .out_valid(header_out_valid),
+  // .out_i(i_out_header),
+  // .out_q(q_out_header),
+  // .out_ready(delay_ready)
   .out_ready(out_ready),
   .out_valid(out_valid),
   .out_i(out_data[23:12]),
   .out_q(out_data[11:0])
 );
+
+// hold_8_cycles my_delay (
+//   .clk(clk),
+//   .rst(rst),
+//   .in_i(i_out_header),
+//   .in_q(q_out_header),
+//   .in_valid(header_out_valid),
+//   .in_ready(delay_ready),
+
+//   .out_ready(out_ready),
+//   .out_valid(out_valid),
+//   .out_i(out_data[23:12]),
+//   .out_q(out_data[11:0])
+// );
 
 endmodule

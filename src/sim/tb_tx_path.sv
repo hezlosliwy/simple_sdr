@@ -19,7 +19,7 @@ logic i_out_ready;
 
 logic fir_ready;
 logic fir_o_data_valid;
-logic [11:0] fir_I_output, fir_Q_output;
+logic [15:0] fir_I_output, fir_Q_output;
 logic [11:0] fifo_I_output, fifo_Q_output;
 logic [15:0] out_stream_data_i, out_stream_data_q;
 
@@ -38,7 +38,7 @@ end
 initial begin
   out_clk = 1'b0;
   forever begin
-    out_clk = #(CLK_PERIOD/2) ~out_clk;
+    out_clk = #(CLK_PERIOD/2*8) ~out_clk;
   end
 end
 
@@ -104,18 +104,6 @@ always @(posedge clk) begin
   end
 end
 
-always@(posedge clk) begin : save_output;
-  @(posedge clk);
-  if (o_valid) begin
-    if (o_I == 12'h5a7) i_out_vect = {i_out_vect, "1.0,"};
-    else if (o_I == 12'ha59) i_out_vect = {i_out_vect, "-1.0,"};
-    else i_out_vect = {i_out_vect, "X.X,"};
-
-    if (o_Q == 12'h5a7) q_out_vect = {q_out_vect, "1.0,"};
-    else if (o_Q == 12'ha59) q_out_vect = {q_out_vect, "-1.0,"};
-    else q_out_vect = {q_out_vect, "X.X,"};
-  end
-end
 
 initial begin : main
   // logger_local.init();
@@ -148,31 +136,31 @@ TX_path_top DUT (
   .in_Q(i_Q)  // temporary
 );
 
-
-
-fir my_fir(
-    .clk(clk),
-    .rst(rst),
-    .in_valid(o_valid),
-    .in_data_i(o_I),
-    .in_data_q(o_Q),
-    .in_ready(fir_ready),
-    .out_valid(fir_o_data_valid),
-    .out_data_i(fir_I_output),
-    .out_data_q(fir_Q_output),
-    .out_ready(i_out_ready)
-  );
-
 // fir my_fir(
-//   .clk(clk),
-//   .rst(rst),
-//   .in_valid(o_valid),
-//   .in_data(o_Q),
-//   .in_ready(fir_ready),
-//   .out_valid(fir_o_data_valid),
-//   .out_data(fir_I_output),
-//   .out_ready(i_out_ready)
-// );
+//     .clk(clk),
+//     .rst(rst),
+//     .in_valid(o_valid),
+//     .in_data_i(o_I),
+//     .in_data_q(o_Q),
+//     .in_ready(fir_ready),
+//     .out_valid(fir_o_data_valid),
+//     .out_data_i(fir_I_output),
+//     .out_data_q(fir_Q_output),
+//     .out_ready(i_out_ready)
+//   );
+
+logic [3:0] tr1, tr2;
+
+fir_compiler_0 my_fir(
+  .aclk(clk),
+  .aresetn(~rst),
+  .s_axis_data_tvalid(o_valid),
+  .s_axis_data_tdata({4'b0, o_I, 4'b0, o_Q}),
+  .s_axis_data_tready(fir_ready),
+  .m_axis_data_tvalid(fir_o_data_valid),
+  .m_axis_data_tdata({ fir_I_output, fir_Q_output}),
+  .m_axis_data_tready(i_out_ready)
+);
 
 fifo_async
 #(
@@ -185,11 +173,11 @@ fifo_async
     .in_clk(clk),
     .in_valid(fir_o_data_valid),
     .in_ready(i_out_ready),
-    .in_data({fir_I_output,fir_Q_output}),
+    .in_data({fir_I_output[11:0], fir_Q_output[11:0]}),
     .out_clk(out_clk),
     .out_valid(fifo_out_valid),
     .out_ready(1'b1),
-    .out_data({fifo_I_output,fifo_Q_output})
+    .out_data({fifo_I_output, fifo_Q_output})
 );
 
 axis_fsource #(
