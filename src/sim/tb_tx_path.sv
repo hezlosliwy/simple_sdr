@@ -24,7 +24,7 @@ logic [11:0] fifo_I_output, fifo_Q_output;
 logic [15:0] out_stream_data_i, out_stream_data_q;
 
 logic [7:0] in_stream_data, in_stream_data_int;
-logic in_valid_dut;
+logic in_valid_dut = 1'b0;
 
 string i_out_vect = "", q_out_vect = "";
 
@@ -38,7 +38,7 @@ end
 initial begin
   out_clk = 1'b0;
   forever begin
-    out_clk = #(CLK_PERIOD/2*8) ~out_clk;
+    out_clk = #(CLK_PERIOD/2) ~out_clk;
   end
 end
 
@@ -77,7 +77,8 @@ axis_fsource #(
   );
 
 logic [1:0] in_data_cnt;
-assign in_stream_ready = in_data_cnt==0 & o_ready;
+logic have_data = 1'b0;
+assign in_stream_ready = in_data_cnt==0 & o_ready & ~have_data;
 
 assign i_I = in_stream_data_int[7];
 assign i_Q = in_stream_data_int[6];
@@ -87,13 +88,17 @@ always @(posedge clk) begin
   if(rst) begin
     in_data_cnt <= 2'b0;
   end
-  else if(i_out_ready) begin
+  else if(o_ready) begin
     in_data_cnt <= in_data_cnt + 1;
     if(in_data_cnt==0) begin
       in_valid_dut <= 1'b1;
       in_stream_data_int <= in_stream_data;
+      have_data <= 1'b1;
     end
     else begin
+      if(in_data_cnt==3) begin
+        have_data <= 1'b0;
+      end
       in_stream_data_int <= {in_stream_data_int[5:0], 2'b0};
     end
   end
