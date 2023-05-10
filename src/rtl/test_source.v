@@ -7,7 +7,7 @@ module test_source(
     (* X_INTERFACE_INFO = "xilinx.com:interface:axis:1.0 axis_out TVALID" *)
     output wire out_valid,
     (* X_INTERFACE_INFO = "xilinx.com:interface:axis:1.0 axis_out TDATA" *)
-    output reg [23:0] out_data, //i q
+    output reg [1:0] out_data, //i q
     (* X_INTERFACE_INFO = "xilinx.com:interface:axis:1.0 axis_out TREADY" *)
     input wire out_ready,
     //internal input stream
@@ -22,11 +22,10 @@ module test_source(
 
     always @(posedge clk) begin
         if(rst) begin
-            out_data <= 24'b0;
+            out_data <= 2'b0;
         end
         else if(out_ready) begin
-            out_data[11:0]  <= out_data[11:0] + 1'b1;
-            out_data[23:12] <= out_data[23:12] + 1'b1;
+            out_data <= ~out_data;
         end
         else out_data <= out_data;
     end

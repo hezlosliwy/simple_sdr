@@ -24,5 +24,7 @@ source ./../../src/bd/sdr_bd.tcl
 # Create wrapper
 make_wrapper -files [get_files ./bd/sdr_bd/sdr_bd.bd] -top
 add_files -norecurse ./bd/sdr_bd/hdl/sdr_bd_wrapper.v
+# Add xpm
+set_property XPM_LIBRARIES XPM_FIFO [current_project]
 
 quit

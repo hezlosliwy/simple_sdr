@@ -47,11 +47,11 @@ set_property  -dict {PACKAGE_PIN  F15  IOSTANDARD LVCMOS18} [get_ports gpio_ctl[
 
 set_property  -dict {PACKAGE_PIN  L13  IOSTANDARD LVCMOS18} [get_ports gpio_en_agc]
 #gpio_resetb
-set_property -dict {PACKAGE_PIN P9 IOSTANDARD LVCMOS18} [get_ports gpio_emio[0]]
+set_property -dict {PACKAGE_PIN P9 IOSTANDARD LVCMOS18} [get_ports {gpio_emio[0]}]
 #enable
-set_property  -dict {PACKAGE_PIN  K12  IOSTANDARD LVCMOS18} [get_ports gpio_emio[1]]
+set_property -dict {PACKAGE_PIN K12 IOSTANDARD LVCMOS18} [get_ports {gpio_emio[1]}]
 #txnrx
-set_property  -dict {PACKAGE_PIN  K11  IOSTANDARD LVCMOS18} [get_ports gpio_emio[2]]
+set_property -dict {PACKAGE_PIN K11 IOSTANDARD LVCMOS18} [get_ports {gpio_emio[2]}]
 
 set_property  -dict {PACKAGE_PIN  M14  IOSTANDARD LVCMOS18 PULLTYPE PULLUP} [get_ports iic_scl]
 set_property  -dict {PACKAGE_PIN  N14  IOSTANDARD LVCMOS18 PULLTYPE PULLUP} [get_ports iic_sda]
@@ -78,4 +78,5 @@ set_input_jitter clk_fpga_1 0.15
 
 set_false_path -from [get_pins {i_system_wrapper/system_i/axi_ad9361/inst/i_rx/i_up_adc_common/up_adc_gpio_out_int_reg[0]/C}]
 set_false_path -from [get_pins {i_system_wrapper/system_i/axi_ad9361/inst/i_tx/i_up_dac_common/up_dac_gpio_out_int_reg[0]/C}]
+
 
