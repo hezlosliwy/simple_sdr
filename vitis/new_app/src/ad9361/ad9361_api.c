@@ -408,9 +408,9 @@ int32_t ad9361_init (struct ad9361_rf_phy **ad9361_phy, AD9361_InitParam *init_p
 	if (ret < 0)
 		goto out;
 
-//	ret = ad9361_post_setup(phy);
-//	if (ret < 0)
-//		goto out;
+	ret = ad9361_post_setup(phy);
+	if (ret < 0)
+		goto out;
 
 	printf("%s : AD9361 Rev %d successfully initialized\n", "ad9361_init", (int)rev);
 

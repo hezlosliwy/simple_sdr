@@ -40,7 +40,7 @@ if { [string first $scripts_vivado_version $current_vivado_version] == -1 } {
 
 # The design that will be created by this Tcl script contains the following 
 # module references:
-# test_source, top_ad9363_stream
+# TX_path_top, test_source, top_ad9363_stream
 
 # Please add the sources of those modules before sourcing this Tcl script.
 
@@ -155,6 +155,7 @@ xilinx.com:ip:processing_system7:5.5\
 set bCheckModules 1
 if { $bCheckModules == 1 } {
    set list_check_mods "\ 
+TX_path_top\
 test_source\
 top_ad9363_stream\
 "
@@ -237,6 +238,17 @@ proc create_root_design { parentCell } {
   set tx_data_out [ create_bd_port -dir O -from 11 -to 0 tx_data_out ]
   set tx_frame_out [ create_bd_port -dir O tx_frame_out ]
 
+  # Create instance: TX_path_top_0, and set properties
+  set block_name TX_path_top
+  set block_cell_name TX_path_top_0
+  if { [catch {set TX_path_top_0 [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
+     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
+     return 1
+   } elseif { $TX_path_top_0 eq "" } {
+     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
+     return 1
+   }
+  
   # Create instance: proc_sys_reset_0, and set properties
   set proc_sys_reset_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:proc_sys_reset:5.0 proc_sys_reset_0 ]
 
@@ -422,9 +434,11 @@ proc create_root_design { parentCell } {
    }
   
   # Create interface connections
+  connect_bd_intf_net -intf_net TX_path_top_0_axis_out [get_bd_intf_pins TX_path_top_0/axis_out] [get_bd_intf_pins top_ad9363_stream_0/axis_in]
+  set_property HDL_ATTRIBUTE.DEBUG {true} [get_bd_intf_nets TX_path_top_0_axis_out]
   connect_bd_intf_net -intf_net processing_system7_0_DDR [get_bd_intf_ports DDR] [get_bd_intf_pins processing_system7_0/DDR]
   connect_bd_intf_net -intf_net processing_system7_0_FIXED_IO [get_bd_intf_ports FIXED_IO] [get_bd_intf_pins processing_system7_0/FIXED_IO]
-  connect_bd_intf_net -intf_net test_source_0_axis_out [get_bd_intf_pins test_source_0/axis_out] [get_bd_intf_pins top_ad9363_stream_0/axis_in]
+  connect_bd_intf_net -intf_net test_source_0_axis_out [get_bd_intf_pins TX_path_top_0/axis_in] [get_bd_intf_pins test_source_0/axis_out]
   set_property HDL_ATTRIBUTE.DEBUG {true} [get_bd_intf_nets test_source_0_axis_out]
   connect_bd_intf_net -intf_net top_ad9363_stream_0_axis_out [get_bd_intf_pins test_source_0/axis_in] [get_bd_intf_pins top_ad9363_stream_0/axis_out]
   set_property HDL_ATTRIBUTE.DEBUG {true} [get_bd_intf_nets top_ad9363_stream_0_axis_out]
@@ -432,8 +446,8 @@ proc create_root_design { parentCell } {
   # Create port connections
   connect_bd_net -net SPI0_MISO_I_0_1 [get_bd_ports spi_miso] [get_bd_pins processing_system7_0/SPI0_MISO_I]
   set_property HDL_ATTRIBUTE.DEBUG {true} [get_bd_nets SPI0_MISO_I_0_1]
-  connect_bd_net -net proc_sys_reset_0_peripheral_reset [get_bd_pins proc_sys_reset_0/peripheral_reset] [get_bd_pins test_source_0/rst] [get_bd_pins top_ad9363_stream_0/rst]
-  connect_bd_net -net processing_system7_0_FCLK_CLK0 [get_bd_pins proc_sys_reset_0/slowest_sync_clk] [get_bd_pins processing_system7_0/FCLK_CLK0] [get_bd_pins processing_system7_0/M_AXI_GP0_ACLK] [get_bd_pins test_source_0/clk] [get_bd_pins top_ad9363_stream_0/clk]
+  connect_bd_net -net proc_sys_reset_0_peripheral_reset [get_bd_pins TX_path_top_0/rst] [get_bd_pins proc_sys_reset_0/peripheral_reset] [get_bd_pins test_source_0/rst] [get_bd_pins top_ad9363_stream_0/rst]
+  connect_bd_net -net processing_system7_0_FCLK_CLK0 [get_bd_pins TX_path_top_0/clk] [get_bd_pins proc_sys_reset_0/slowest_sync_clk] [get_bd_pins processing_system7_0/FCLK_CLK0] [get_bd_pins processing_system7_0/M_AXI_GP0_ACLK] [get_bd_pins test_source_0/clk] [get_bd_pins top_ad9363_stream_0/clk]
   connect_bd_net -net processing_system7_0_FCLK_RESET0_N [get_bd_pins proc_sys_reset_0/ext_reset_in] [get_bd_pins processing_system7_0/FCLK_RESET0_N]
   connect_bd_net -net processing_system7_0_GPIO_O [get_bd_ports gpio_emio] [get_bd_pins processing_system7_0/GPIO_O]
   set_property HDL_ATTRIBUTE.DEBUG {true} [get_bd_nets processing_system7_0_GPIO_O]

@@ -9,10 +9,10 @@
 #define GPIO_DEVICE_ID XPAR_PS7_GPIO_0_DEVICE_ID
 #define SPI_DEVICE_ID XPAR_PS7_SPI_0_DEVICE_ID
 
-
+#define DIV 16
 AD9361_InitParam default_init_param = {
 	/* Identification number */
-	0,		//id_no;
+	ID_AD9361,		//id_no;
 	/* Reference Clock */
 	40000000UL,	//reference_clk_rate
 	/* Base Configuration */
@@ -34,7 +34,7 @@ AD9361_InitParam default_init_param = {
 	0x32,	//dc_offset_count_low_range *** adi,dc-offset-tracking-update-event-mask
 	0,		//tdd_use_fdd_vco_tables_enable *** adi,tdd-use-fdd-vco-tables-enable
 	0,		//split_gain_table_mode_enable *** adi,split-gain-table-mode-enable
-	MAX_SYNTH_FREF,	//trx_synthesizer_target_fref_overwrite_hz *** adi,trx-synthesizer-target-fref-overwrite-hz
+	80008000,	//trx_synthesizer_target_fref_overwrite_hz *** adi,trx-synthesizer-target-fref-overwrite-hz
 	0,		// qec_tracking_slow_mode_enable *** adi,qec-tracking-slow-mode-enable
 	/* ENSM Control */
 	0,		//ensm_enable_pin_pulse_mode_enable *** adi,ensm-enable-pin-pulse-mode-enable
@@ -43,23 +43,27 @@ AD9361_InitParam default_init_param = {
 	400000000UL,	//rx_synthesizer_frequency_hz *** adi,rx-synthesizer-frequency-hz
 	400000000UL,	//tx_synthesizer_frequency_hz *** adi,tx-synthesizer-frequency-hz
 	/* Rate & BW Control */
-	{98304000, 24576000, 12288000, 6144000, 3072000, 3072000},//uint32_t	rx_path_clock_frequencies[6] *** adi,rx-path-clock-frequencies
-	{98304000, 12288000, 12288000, 6144000, 3072000, 3072000},//uint32_t	tx_path_clock_frequencies[6] *** adi,tx-path-clock-frequencies
-	1200000,//rf_rx_bandwidth_hz *** adi,rf-rx-bandwidth-hz
-	1200000,//rf_tx_bandwidth_hz *** adi,rf-tx-bandwidth-hz
+//	{98304000, 24576000, 12288000, 6144000, 3072000, 3072000},//uint32_t	rx_path_clock_frequencies[6] *** adi,rx-path-clock-frequencies
+//	{98304000, 12288000, 12288000, 6144000, 3072000, 3072000},//uint32_t	tx_path_clock_frequencies[6] *** adi,tx-path-clock-frequencies
+//	1200000,//rf_rx_bandwidth_hz *** adi,rf-rx-bandwidth-hz
+//	1200000,//rf_tx_bandwidth_hz *** adi,rf-tx-bandwidth-hz
+	{357500000, 89375000, 44687500, 22343750, 11171875, 11171875},//uint32_t	rx_path_clock_frequencies[6] *** adi,rx-path-clock-frequencies
+	{357500000, 89375000, 44687500, 22343750, 11171875, 11171875},//uint32_t	tx_path_clock_frequencies[6] *** adi,tx-path-clock-frequencies
+	11171875,//rf_rx_bandwidth_hz *** adi,rf-rx-bandwidth-hz
+	11171875 ,//rf_tx_bandwidth_hz *** adi,rf-tx-bandwidth-hz
 	/* RF Port Control */
 	0,		//rx_rf_port_input_select *** adi,rx-rf-port-input-select
 	0,		//tx_rf_port_input_select *** adi,tx-rf-port-input-select
 	/* TX Attenuation Control */
-	5000,	//tx_attenuation_mdB *** adi,tx-attenuation-mdB
+	1000,	//tx_attenuation_mdB *** adi,tx-attenuation-mdB
 	0,		//update_tx_gain_in_alert_enable *** adi,update-tx-gain-in-alert-enable
 	/* Reference Clock Control */
 	0,		//xo_disable_use_ext_refclk_enable *** adi,xo-disable-use-ext-refclk-enable
 	{8, 5920},	//dcxo_coarse_and_fine_tune[2] *** adi,dcxo-coarse-and-fine-tune
 	0,		//clk_output_mode_select *** adi,clk-output-mode-select
 	/* Gain Control */
-	RF_GAIN_HYBRID_AGC,//RF_GAIN_MGC,		//gc_rx1_mode *** adi,gc-rx1-mode
-	RF_GAIN_HYBRID_AGC,//RF_GAIN_MGC,		//gc_rx2_mode *** adi,gc-rx2-mode
+	RF_GAIN_SLOWATTACK_AGC,//RF_GAIN_MGC,		//gc_rx1_mode *** adi,gc-rx1-mode
+	RF_GAIN_SLOWATTACK_AGC,//RF_GAIN_MGC,		//gc_rx2_mode *** adi,gc-rx2-mode
 	58,		//gc_adc_large_overload_thresh *** adi,gc-adc-large-overload-thresh
 	4,		//gc_adc_ovr_sample_size *** adi,gc-adc-ovr-sample-size
 	47,		//gc_adc_small_overload_thresh *** adi,gc-adc-small-overload-thresh
@@ -180,23 +184,23 @@ AD9361_InitParam default_init_param = {
 	0,		//fdd_alt_word_order_enable *** adi,fdd-alt-word-order-enable
 	0,		//invert_rx_frame_enable *** adi,invert-rx-frame-enable
 	0,		//fdd_rx_rate_2tx_enable *** adi,fdd-rx-rate-2tx-enable
-	0,		//swap_ports_enable *** adi,swap-ports-enable
+	1,		//swap_ports_enable *** adi,swap-ports-enable
 	1,		//single_data_rate_enable *** adi,single-data-rate-enable TODO
 	0,		//lvds_mode_enable *** adi,lvds-mode-enable
 	0,		//half_duplex_mode_enable *** adi,half-duplex-mode-enable
 	0,		//single_port_mode_enable *** adi,single-port-mode-enable
-	0,		//full_port_enable *** adi,full-port-enable
+	1,		//full_port_enable *** adi,full-port-enable
 	0,		//full_duplex_swap_bits_enable *** adi,full-duplex-swap-bits-enable
 	0,		//delay_rx_data *** adi,delay-rx-data
 	0,		//rx_data_clock_delay *** adi,rx-data-clock-delay
 	4,		//rx_data_delay *** adi,rx-data-delay
 	7,		//tx_fb_clock_delay *** adi,tx-fb-clock-delay
 	0,		//tx_data_delay *** adi,tx-data-delay
-	0,	//lvds_bias_mV *** adi,lvds-bias-mV
+	0,	    //lvds_bias_mV *** adi,lvds-bias-mV
 	0,		//lvds_rx_onchip_termination_enable *** adi,lvds-rx-onchip-termination-enable
 	0,		//rx1rx2_phase_inversion_en *** adi,rx1-rx2-phase-inversion-enable
-	0xFF,	//lvds_invert1_control *** adi,lvds-invert1-control
-	0x0F,	//lvds_invert2_control *** adi,lvds-invert2-control
+	0, //0xFF,	//lvds_invert1_control *** adi,lvds-invert1-control
+	0, //0x0F,	//lvds_invert2_control *** adi,lvds-invert2-control
 	/* GPO Control */
 	0,		//gpo0_inactive_state_high_enable *** adi,gpo0-inactive-state-high-enable
 	0,		//gpo1_inactive_state_high_enable *** adi,gpo1-inactive-state-high-enable
@@ -239,9 +243,9 @@ AD9361_InitParam default_init_param = {
 };
 
 AD9361_RXFIRConfig rx_fir_config = {	// BPF PASSBAND 3/20 fs to 1/4 fs
-	1, // rx;
+	3, // rx;
 	0, // rx_gain;
-	1, // rx_dec;
+	4, // rx_dec;
 	// {-4, -6, -37, 35, 186, 86, -284, -315,
 	//  107, 219, -4, 271, 558, -307, -1182, -356,
 	//  658, 157, 207, 1648, 790, -2525, -2553, 748,
@@ -272,13 +276,13 @@ AD9361_RXFIRConfig rx_fir_config = {	// BPF PASSBAND 3/20 fs to 1/4 fs
 	-37, -34, 31, 29, -26, -24, 22, 20, -18, -16, 15, 13,
 	-12, -11, 10, 9, -8, -7, 7, 6, -5, -5, 5, 4, -4, -4
 	},
-	 64 // rx_coef_size
+	 128 // rx_coef_size
 };
 
 AD9361_TXFIRConfig tx_fir_config = {	// BPF PASSBAND 3/20 fs to 1/4 fs
-	1, // tx;
+	3, // tx;
 	0, // tx_gain;
-	1, // tx_int;
+	4, // tx_int;
 	// {-4, -6, -37, 35, 186, 86, -284, -315,
 	//  107, 219, -4, 271, 558, -307, -1182, -356,
 	//  658, 157, 207, 1648, 790, -2525, -2553, 748,
@@ -309,7 +313,7 @@ AD9361_TXFIRConfig tx_fir_config = {	// BPF PASSBAND 3/20 fs to 1/4 fs
 	-37, -34, 31, 29, -26, -24, 22, 20, -18, -16, 15, 13,
 	-12, -11, 10, 9, -8, -7, 7, 6, -5, -5, 5, 4, -4, -4
 	},
-	 64 // tx_coef_size
+	 128 // tx_coef_size
 };
 struct ad9361_rf_phy *ad9361_phy;
 
@@ -320,18 +324,32 @@ int main(){
 	gpio_direction(default_init_param.gpio_resetb, 1);
 
 	spi_init(SPI_DEVICE_ID, 1, 0);
-	ad9361_init(&ad9361_phy, &default_init_param);
+	res = ad9361_init(&ad9361_phy, &default_init_param);
+	res = ad9361_set_rx_fir_config(ad9361_phy, rx_fir_config);
+	res = ad9361_set_tx_fir_config(ad9361_phy, tx_fir_config);
+	uint32_t sr = 2084000;//10240000; //15360000;
+//	ad9361_get_tx_sampling_freq (ad9361_phy, &sr);
+//	ad9361_get_rx_sampling_freq (ad9361_phy, &sr);
+//	uint32_t bw = 0;
+//	ad9361_get_rx_rf_bandwidth(ad9361_phy, &bw);
+//	bw = 6000000;
+//	res = ad9361_set_rx_rf_bandwidth(ad9361_phy, bw);
+//	ad9361_get_rx_rf_bandwidth(ad9361_phy, &bw);
+//	sr = 2000000;//10240000; //15360000;
+//	res = ad9361_set_rx_sampling_freq(ad9361_phy, sr);
 
-	uint32_t sr = 15360000;
+//	res = ad9361_set_rx_sampling_freq(ad9361_phy, sr);
+//	res = ad9361_do_calib(ad9361_phy, RFDC_CAL, 0);
+//	res = ad9361_do_calib(ad9361_phy, TX_QUAD_CAL, 0);
+//
+//
+//
+//	res = ad9361_set_rx_rf_gain(ad9361_phy, 0, 71);
+//	res = ad9361_set_tx_auto_cal_en_dis(ad9361_phy, 1);
+	ad9361_get_tx_sampling_freq (ad9361_phy, &sr);
+	ad9361_get_rx_sampling_freq (ad9361_phy, &sr);
 
-	res = ad9361_set_rx_sampling_freq(ad9361_phy, &sr);
-	res = ad9361_set_tx_sampling_freq(ad9361_phy, &sr);
-	res = ad9361_set_rx_rf_gain(ad9361_phy, 0, 10);
-	res = ad9361_set_tx_auto_cal_en_dis(ad9361_phy, 1);
-	res = ad9361_do_calib(ad9361_phy, RFDC_CAL, 0);
 
-//	res = ad9361_set_rx_fir_config(ad9361_phy, rx_fir_config);
-//	res = ad9361_set_tx_fir_config(ad9361_phy, tx_fir_config);
 	xil_printf("Hello\n");
 	u32 mode;
 	XGpioPs my_gpio;
@@ -344,7 +362,11 @@ int main(){
 	XGpioPs_SetOutputEnablePin(&my_gpio, 56, 1);
 	XGpioPs_WritePin(&my_gpio, 55,1);
 	XGpioPs_WritePin(&my_gpio, 56,1);
-	ad9361_get_tx_sampling_freq (ad9361_phy, &sr);
+//  readout all registers for debug purpose
+//	for(int i = 0; i<1024; i++){
+//		my_reg = ad9361_spi_read(ad9361_phy->spi, i);
+//		xil_printf("Reg %x val: %x \n", i, my_reg);
+//	}
 	while(1) {
 		ad9361_get_en_state_machine_mode(ad9361_phy, &mode);
 	}

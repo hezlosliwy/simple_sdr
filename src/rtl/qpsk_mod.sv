@@ -1,42 +1,49 @@
 module qpsk_mod(
-    input logic clk,
-    input logic rst_n,
-    input logic i_I,
-    input logic i_Q,
-    input logic i_valid,
+  input wire clk,
+  input wire rst_n,
+  input wire in_i,
+  input wire in_q,
+  input wire in_valid,
+  output reg in_ready,
 
-    output logic o_ready,
-    output logic signed [11:0] o_I,
-    output logic signed [11:0] o_Q
+  input wire out_ready,
+  output reg out_valid,
+  output reg signed [11:0] out_i,
+  output reg signed [11:0] out_q
 );
 
-logic signed [11:0] amplitudes [2] = {12'h5a7, 12'ha59};
+const logic [11:0] ampl = 12'd1447;
 
-always_ff @(posedge clk or negedge rst_n) begin
-    if (!rst_n) begin 
-        o_I <= '0;
-        o_Q <= '0;
+always@(posedge clk) begin
+  if (!rst_n) begin 
+    out_i <= 12'b0;
+    out_q <= 12'b0;
+    out_valid <= 1'b0;
+  end
+  else begin 
+    if (in_valid & in_ready) begin
+      out_valid <= 1'b1;
+      if ({in_i, in_q} == 2'b01) begin
+        out_i <= ampl;
+        out_q <= -ampl;
+      end
+      else if ({in_i, in_q} == 2'b10) begin
+        out_i <= -ampl;
+        out_q <= ampl;
+      end
+      else if ({in_i, in_q} == 2'b11) begin
+        out_i <= -ampl;
+        out_q <= -ampl;
+      end
+      else if ({in_i, in_q} == 2'b00) begin
+        out_i <= ampl;
+        out_q <= ampl;
+      end
     end
-    else begin 
-        if ({i_I, i_Q} == 2'b01) begin
-            o_I <= amplitudes[0];
-            o_Q <= amplitudes[1];
-        end
-        else if ({i_I, i_Q} == 2'b10) begin
-            o_I <= amplitudes[1];
-            o_Q <= amplitudes[0];
-        end
-        else if ({i_I, i_Q} == 2'b11) begin
-            o_I <= amplitudes[1];
-            o_Q <= amplitudes[1];
-        end
-        else if ({i_I, i_Q} == 2'b00) begin
-            o_I <= amplitudes[0];
-            o_Q <= amplitudes[0];
-        end
-    end
+    else out_valid <= out_valid ? ~out_ready : 0;
+  end
 end
 
-assign o_ready = rst_n;
+assign in_ready = ~out_valid | out_ready;
 
 endmodule
