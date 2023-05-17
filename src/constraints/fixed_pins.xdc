@@ -125,3 +125,4 @@ set_property PACKAGE_PIN B2 [get_ports ddr_dqs_n[0]]
 set_property PACKAGE_PIN G2 [get_ports ddr_dqs_p[1]]
 set_property PACKAGE_PIN F2 [get_ports ddr_dqs_n[1]]
 
+
