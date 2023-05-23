@@ -40,7 +40,7 @@ if { [string first $scripts_vivado_version $current_vivado_version] == -1 } {
 
 # The design that will be created by this Tcl script contains the following 
 # module references:
-# TX_path_top, test_source, top_ad9363_stream
+# RX_path_top, TX_path_top, test_source, top_ad9363_stream
 
 # Please add the sources of those modules before sourcing this Tcl script.
 
@@ -155,6 +155,7 @@ xilinx.com:ip:processing_system7:5.5\
 set bCheckModules 1
 if { $bCheckModules == 1 } {
    set list_check_mods "\ 
+RX_path_top\
 TX_path_top\
 test_source\
 top_ad9363_stream\
@@ -238,6 +239,17 @@ proc create_root_design { parentCell } {
   set tx_data_out [ create_bd_port -dir O -from 11 -to 0 tx_data_out ]
   set tx_frame_out [ create_bd_port -dir O tx_frame_out ]
 
+  # Create instance: RX_path_top_0, and set properties
+  set block_name RX_path_top
+  set block_cell_name RX_path_top_0
+  if { [catch {set RX_path_top_0 [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
+     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
+     return 1
+   } elseif { $RX_path_top_0 eq "" } {
+     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
+     return 1
+   }
+  
   # Create instance: TX_path_top_0, and set properties
   set block_name TX_path_top
   set block_cell_name TX_path_top_0
@@ -260,7 +272,7 @@ proc create_root_design { parentCell } {
     CONFIG.PCW_ACT_DCI_PERIPHERAL_FREQMHZ {10.158730} \
     CONFIG.PCW_ACT_ENET0_PERIPHERAL_FREQMHZ {10.000000} \
     CONFIG.PCW_ACT_ENET1_PERIPHERAL_FREQMHZ {10.000000} \
-    CONFIG.PCW_ACT_FPGA0_PERIPHERAL_FREQMHZ {50.000000} \
+    CONFIG.PCW_ACT_FPGA0_PERIPHERAL_FREQMHZ {100.000000} \
     CONFIG.PCW_ACT_FPGA1_PERIPHERAL_FREQMHZ {10.000000} \
     CONFIG.PCW_ACT_FPGA2_PERIPHERAL_FREQMHZ {10.000000} \
     CONFIG.PCW_ACT_FPGA3_PERIPHERAL_FREQMHZ {10.000000} \
@@ -278,7 +290,7 @@ proc create_root_design { parentCell } {
     CONFIG.PCW_ACT_TTC1_CLK2_PERIPHERAL_FREQMHZ {111.111115} \
     CONFIG.PCW_ACT_UART_PERIPHERAL_FREQMHZ {10.000000} \
     CONFIG.PCW_ACT_WDT_PERIPHERAL_FREQMHZ {111.111115} \
-    CONFIG.PCW_CLK0_FREQ {50000000} \
+    CONFIG.PCW_CLK0_FREQ {100000000} \
     CONFIG.PCW_CLK1_FREQ {10000000} \
     CONFIG.PCW_CLK2_FREQ {10000000} \
     CONFIG.PCW_CLK3_FREQ {10000000} \
@@ -288,6 +300,7 @@ proc create_root_design { parentCell } {
     CONFIG.PCW_EN_GPIO {1} \
     CONFIG.PCW_EN_QSPI {1} \
     CONFIG.PCW_EN_SPI0 {1} \
+    CONFIG.PCW_FPGA0_PERIPHERAL_FREQMHZ {100} \
     CONFIG.PCW_FPGA_FCLK0_ENABLE {1} \
     CONFIG.PCW_GPIO_EMIO_GPIO_ENABLE {1} \
     CONFIG.PCW_GPIO_EMIO_GPIO_IO {3} \
@@ -434,20 +447,22 @@ proc create_root_design { parentCell } {
    }
   
   # Create interface connections
+  connect_bd_intf_net -intf_net RX_path_top_0_axis_out [get_bd_intf_pins RX_path_top_0/axis_out] [get_bd_intf_pins test_source_0/axis_in]
+  set_property HDL_ATTRIBUTE.DEBUG {true} [get_bd_intf_nets RX_path_top_0_axis_out]
   connect_bd_intf_net -intf_net TX_path_top_0_axis_out [get_bd_intf_pins TX_path_top_0/axis_out] [get_bd_intf_pins top_ad9363_stream_0/axis_in]
   set_property HDL_ATTRIBUTE.DEBUG {true} [get_bd_intf_nets TX_path_top_0_axis_out]
   connect_bd_intf_net -intf_net processing_system7_0_DDR [get_bd_intf_ports DDR] [get_bd_intf_pins processing_system7_0/DDR]
   connect_bd_intf_net -intf_net processing_system7_0_FIXED_IO [get_bd_intf_ports FIXED_IO] [get_bd_intf_pins processing_system7_0/FIXED_IO]
   connect_bd_intf_net -intf_net test_source_0_axis_out [get_bd_intf_pins TX_path_top_0/axis_in] [get_bd_intf_pins test_source_0/axis_out]
   set_property HDL_ATTRIBUTE.DEBUG {true} [get_bd_intf_nets test_source_0_axis_out]
-  connect_bd_intf_net -intf_net top_ad9363_stream_0_axis_out [get_bd_intf_pins test_source_0/axis_in] [get_bd_intf_pins top_ad9363_stream_0/axis_out]
+  connect_bd_intf_net -intf_net top_ad9363_stream_0_axis_out [get_bd_intf_pins RX_path_top_0/axis_in] [get_bd_intf_pins top_ad9363_stream_0/axis_out]
   set_property HDL_ATTRIBUTE.DEBUG {true} [get_bd_intf_nets top_ad9363_stream_0_axis_out]
 
   # Create port connections
   connect_bd_net -net SPI0_MISO_I_0_1 [get_bd_ports spi_miso] [get_bd_pins processing_system7_0/SPI0_MISO_I]
   set_property HDL_ATTRIBUTE.DEBUG {true} [get_bd_nets SPI0_MISO_I_0_1]
-  connect_bd_net -net proc_sys_reset_0_peripheral_reset [get_bd_pins TX_path_top_0/rst] [get_bd_pins proc_sys_reset_0/peripheral_reset] [get_bd_pins test_source_0/rst] [get_bd_pins top_ad9363_stream_0/rst]
-  connect_bd_net -net processing_system7_0_FCLK_CLK0 [get_bd_pins TX_path_top_0/clk] [get_bd_pins proc_sys_reset_0/slowest_sync_clk] [get_bd_pins processing_system7_0/FCLK_CLK0] [get_bd_pins processing_system7_0/M_AXI_GP0_ACLK] [get_bd_pins test_source_0/clk] [get_bd_pins top_ad9363_stream_0/clk]
+  connect_bd_net -net proc_sys_reset_0_peripheral_reset [get_bd_pins RX_path_top_0/rst] [get_bd_pins TX_path_top_0/rst] [get_bd_pins proc_sys_reset_0/peripheral_reset] [get_bd_pins test_source_0/rst] [get_bd_pins top_ad9363_stream_0/rst]
+  connect_bd_net -net processing_system7_0_FCLK_CLK0 [get_bd_pins RX_path_top_0/clk] [get_bd_pins TX_path_top_0/clk] [get_bd_pins proc_sys_reset_0/slowest_sync_clk] [get_bd_pins processing_system7_0/FCLK_CLK0] [get_bd_pins processing_system7_0/M_AXI_GP0_ACLK] [get_bd_pins test_source_0/clk] [get_bd_pins top_ad9363_stream_0/clk]
   connect_bd_net -net processing_system7_0_FCLK_RESET0_N [get_bd_pins proc_sys_reset_0/ext_reset_in] [get_bd_pins processing_system7_0/FCLK_RESET0_N]
   connect_bd_net -net processing_system7_0_GPIO_O [get_bd_ports gpio_emio] [get_bd_pins processing_system7_0/GPIO_O]
   set_property HDL_ATTRIBUTE.DEBUG {true} [get_bd_nets processing_system7_0_GPIO_O]
@@ -457,17 +472,11 @@ proc create_root_design { parentCell } {
   set_property HDL_ATTRIBUTE.DEBUG {true} [get_bd_nets processing_system7_0_SPI0_SCLK_O]
   connect_bd_net -net processing_system7_0_SPI0_SS_O [get_bd_ports spi_csn] [get_bd_pins processing_system7_0/SPI0_SS_O]
   connect_bd_net -net rx_clk_in_1 [get_bd_ports rx_clk_in] [get_bd_pins top_ad9363_stream_0/data_clk]
-  set_property HDL_ATTRIBUTE.DEBUG {true} [get_bd_nets rx_clk_in_1]
   connect_bd_net -net rx_data_in_1 [get_bd_ports rx_data_in] [get_bd_pins top_ad9363_stream_0/p0_d]
-  set_property HDL_ATTRIBUTE.DEBUG {true} [get_bd_nets rx_data_in_1]
   connect_bd_net -net rx_frame_in_1 [get_bd_ports rx_frame_in] [get_bd_pins top_ad9363_stream_0/rx_frame]
-  set_property HDL_ATTRIBUTE.DEBUG {true} [get_bd_nets rx_frame_in_1]
   connect_bd_net -net top_ad9363_stream_0_fb_clk [get_bd_ports tx_clk_out] [get_bd_pins top_ad9363_stream_0/fb_clk]
-  set_property HDL_ATTRIBUTE.DEBUG {true} [get_bd_nets top_ad9363_stream_0_fb_clk]
   connect_bd_net -net top_ad9363_stream_0_p1_d [get_bd_ports tx_data_out] [get_bd_pins top_ad9363_stream_0/p1_d]
-  set_property HDL_ATTRIBUTE.DEBUG {true} [get_bd_nets top_ad9363_stream_0_p1_d]
   connect_bd_net -net top_ad9363_stream_0_tx_frame [get_bd_ports tx_frame_out] [get_bd_pins top_ad9363_stream_0/tx_frame]
-  set_property HDL_ATTRIBUTE.DEBUG {true} [get_bd_nets top_ad9363_stream_0_tx_frame]
 
   # Create address segments
 
