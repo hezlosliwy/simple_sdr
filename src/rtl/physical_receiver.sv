@@ -25,8 +25,8 @@ module physical_receiver(
   logic signed [1:0] sample_q, sample_q_prev; //sample_q_mux, 
   logic signed [3:0] diff_data_i, diff_data_q;
 
-  logic signed [22:0] gardner_mertic_sum;
-
+  logic signed [13:0] gardner_mertic_sum;
+  logic signed [13:11] gardner_mertic_sum_msbs;
   logic [2:0] space_cnt;
 
   (* MARK_DEBUG = "TRUE" *)logic [12:0] sof_dist_cnt;
@@ -78,10 +78,11 @@ module physical_receiver(
   end
 
   assign phase_sum = (phase_cnt+phase)%8;
+  assign gardner_mertic_sum_msbs = gardner_mertic_sum[13:11];
 
   always @(posedge clk) begin
     if(rst) begin
-      phase <= 2;
+      phase <= 0;
       update_phase <= 0;
       phase_cnt <= 0;
       gardner_mertic_i <= 0;
@@ -98,8 +99,8 @@ module physical_receiver(
       phase_cnt <= phase_cnt + 1;
       if(phase_sum == 0) begin
         found_sof_int <= found_sof;
-        sample_i <= (in_data_store_i[1] > 0) ? 1 : -1;
-        sample_q <= (in_data_store_q[1] > 0) ? 1 : -1;
+        sample_i <= (~in_data_store_i[1][11]) ? 1 : -1;
+        sample_q <= (~in_data_store_q[1][11]) ? 1 : -1;
         sample_i_prev <= sample_i;
         sample_q_prev <= sample_q;
         gardner_mertic_i <= (in_data_store_i[0]-in_data_store_i[2])*in_data_store_i[1];
@@ -111,8 +112,8 @@ module physical_receiver(
       if(update_phase) begin
         update_cnt <= update_cnt + 1;
         if(update_cnt == 15) begin
-          if(gardner_mertic_sum < -1800) phase <= phase + 1;
-          else if(gardner_mertic_sum > 1800) phase <= phase - 1;
+          if(gardner_mertic_sum_msbs < -1) phase <= phase + 1;
+          else if(gardner_mertic_sum_msbs > 0) phase <= phase - 1;
           update_cnt <= 0;
           update_value <= 0;
           gardner_mertic_sum <= 0;
@@ -131,45 +132,36 @@ module physical_receiver(
     if(rst) begin
       sof_reg <= 25'b0;
       correl_cnt <= 0;
-      correl_cnt_swap = 0;
       rot_cnt_i <= 0;
-      rot_cnt_i_not <= 0;
       rot_cnt_q <= 0;
-      rot_cnt_q_not <= 0;
       found_sof <= 1'b0;
       sof_i_reg <= 0;
-      rot <= 2'b01;
+      rot <= 2'b0;
     end
     else begin
       if(phase_sum == 1 & in_valid) begin
         sof_reg <= {sof_reg[23:0], (diff_data_i > 0) ? 1'b1 : 1'b0};
         sof_i_reg <= {sof_i_reg[24:0],(in_data_store_i[1] > 0) ? 1'b1 : 1'b0};
         if(rot_cnt_i > 23) rot <= 2'b00;
-        else if(rot_cnt_q_not > 23) rot <= 2'b11;
-        else if(rot_cnt_i_not > 23) rot <= 2'b10;
         else if(rot_cnt_q > 23) rot <= 2'b01;
+        else if(rot_cnt_i < 3) rot <= 2'b10;
+        else if(rot_cnt_q < 3) rot <= 2'b11;
         else rot <= rot;
       end
 
       correl_cnt = 0;
-      correl_cnt_swap = 0;
       rot_cnt_i = 0;
-      rot_cnt_i_not = 0;
       rot_cnt_q = 0;
-      rot_cnt_q_not = 0;
       for(int i=0;i<25;i=i+1) begin
         correl_cnt = xor_sof[i]==1'b0 ? (correl_cnt + 1) : correl_cnt;
-        correl_cnt_swap = xor_sof[i]==1'b1 ? (correl_cnt_swap + 1) : correl_cnt_swap;
         rot_cnt_i = xor_sof_i[i]==1'b0 ? (rot_cnt_i + 1) : rot_cnt_i;
-        rot_cnt_i_not = xor_sof_i[i]==1'b1 ? (rot_cnt_i_not + 1) : rot_cnt_i_not;
         rot_cnt_q = xor_sof_q[i]==1'b0 ? (rot_cnt_q + 1) : rot_cnt_q;
-        rot_cnt_q_not = xor_sof_q[i]==1'b1 ? (rot_cnt_q_not + 1) : rot_cnt_q_not;
       end
 
       if(correl_cnt > 20) begin
         found_sof <= 1'b1;
       end
-      else if(correl_cnt_swap > 20) begin
+      else if(correl_cnt < 5) begin
         found_sof <= 1'b1;
       end
       else found_sof <= 1'b0;
@@ -189,7 +181,7 @@ module physical_receiver(
       space_cnt <= 2'b0;
     end
     else begin
-      if(space_cnt>0) space_cnt<=space_cnt-1;
+      if(space_cnt>0 & in_valid) space_cnt<=space_cnt-1;
       else if(phase_sum < 3) space_cnt <= 2'b0;
       else space_cnt <= 3'b111;
 
@@ -197,12 +189,12 @@ module physical_receiver(
         out_valid <= 1'b1;
         if(frame_cnt < 62) frame_cnt <= frame_cnt + 1;
         else frame_cnt <= 0;
-        if(sample_i > 0) begin
-          if(sample_q > 0) out_data <= QPSK_ARR[rot];        
+        if(~sample_i[1]) begin //sample_i>0
+          if(~sample_q[1]) out_data <= QPSK_ARR[rot];        
           else out_data <= QPSK_ARR[(3+rot)%4];
         end
         else begin
-          if(sample_q > 0) out_data <= QPSK_ARR[(1+rot)%4];        
+          if(~sample_q[1]) out_data <= QPSK_ARR[(1+rot)%4];        
           else out_data <= QPSK_ARR[(2+rot)%4];
         end
       end

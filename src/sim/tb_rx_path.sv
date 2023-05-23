@@ -18,7 +18,7 @@ logic [7:0] out_model_data;
 logic out_model_valid;
 logic out_model_ready = 0;
 logic err;
-logic eof;
+logic eof1, eof2, eof;
 integer out_cnter = 0;
 initial begin : system_clock
   clk = 1'b0;
@@ -37,8 +37,10 @@ axis_fsource #(
     .out_data({in_stream_data_i, in_stream_data_q}),
     .out_valid(in_stream_valid),
     .out_ready(in_stream_ready),
-    .eof(eof)
+    .eof(eof2)
   );
+
+  assign eof = eof1 | eof2;
 
   always @(iq_rot, in_stream_data_i, in_stream_data_q) begin
     case (iq_rot)
@@ -82,6 +84,7 @@ task automatic process_output();
         break;
       end
     end
+    if(eof) break;
   end
 endtask
 
@@ -97,6 +100,8 @@ initial begin
     end
     iq_rot <= iq_rot + 1;
   end
+  $display("end of test");
+  $finish;
 end
 
 always @(posedge clk) begin
@@ -113,7 +118,7 @@ axis_fsource #(
     .out_data (out_model_data),
     .out_valid(out_model_valid),
     .out_ready(out_model_ready),
-    .eof()
+    .eof(eof1)
   );
 
 endmodule
