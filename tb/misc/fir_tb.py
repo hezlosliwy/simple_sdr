@@ -17,7 +17,7 @@ for i in coefs:
 
 def save_vector_to_file(vect, f_name):
     f = open(f_name, "wb")
-    print(len(vect[0]))
+    print(f"Vector len: {len(vect[0])}")
     for i in range(len(vect[0])):
         f.write(int(vect[0][i]).to_bytes(length=2, byteorder="big", signed=True)) #write i
         f.write(int(vect[1][i]).to_bytes(length=2, byteorder="big", signed=True)) #write q
@@ -52,13 +52,13 @@ out_vect_i, out_vect_q = np.correlate(in_vect_i, h_rrc), np.correlate(in_vect_q,
 
 #save vectors
 
-save_vector_to_file([in_vect_i, in_vect_q], "vectors.in")
-save_vector_to_file([out_vect_i, out_vect_q], "vectors.out")
+# save_vector_to_file([in_vect_i, in_vect_q], "vectors.in")
+# save_vector_to_file([out_vect_i, out_vect_q], "vectors.out")
 
-plt.figure()
-plt.plot(in_vect_i, "x")
+# plt.figure()
+# plt.plot(in_vect_i, "x")
 
-plt.figure()
-plt.plot(np.abs(np.fft.fft(out_vect_i)), "x")
+# plt.figure()
+# plt.plot(np.abs(np.fft.fft(out_vect_i)), "x")
 
-plt.show()
+# plt.show()

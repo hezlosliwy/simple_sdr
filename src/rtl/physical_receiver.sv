@@ -10,8 +10,8 @@ module physical_receiver(
     (* MARK_DEBUG = "TRUE" *)output reg out_valid
   );
 
-  logic signed [11:0] in_data_store_i [6:0];
-  logic signed [11:0] in_data_store_q [6:0];
+  logic signed [11:0] in_data_store_i [2:0];
+  logic signed [11:0] in_data_store_q [2:0];
   (* MARK_DEBUG = "TRUE" *)logic unsigned [2:0] phase_cnt;
   (* MARK_DEBUG = "TRUE" *)logic unsigned [2:0] phase;
   logic unsigned [2:0] phase_sum;
@@ -44,15 +44,15 @@ module physical_receiver(
   (* MARK_DEBUG = "TRUE" *)logic [5:0] rot_cnt_i, rot_cnt_i_not;
   (* MARK_DEBUG = "TRUE" *)logic [5:0] rot_cnt_q, rot_cnt_q_not;
 
-  // logic iq_swap;
-
-  logic [25:0] sof_i_reg, sof_q_reg;
+  logic [25:0] sof_i_reg;
 
   logic [5:0] frame_cnt;
 
+  logic found_sof_int;
+
   (* MARK_DEBUG = "TRUE" *)logic [1:0] rot;
 
-  assign in_ready = 1'b1;
+  assign in_ready = ~rst;
 
   always @(posedge clk) begin
     if (rst) begin
@@ -69,7 +69,7 @@ module physical_receiver(
       if(in_valid) begin
         in_data_store_q[0] <= in_data[11:0];
         in_data_store_i[0] <= in_data[23:12];
-        for(int i = 1;i<7;i=i+1) begin
+        for(int i = 1;i<3;i=i+1) begin
           in_data_store_i[i] <= in_data_store_i[i-1];
           in_data_store_q[i] <= in_data_store_q[i-1];
         end
@@ -81,7 +81,7 @@ module physical_receiver(
 
   always @(posedge clk) begin
     if(rst) begin
-      phase <= 0;
+      phase <= 2;
       update_phase <= 0;
       phase_cnt <= 0;
       gardner_mertic_i <= 0;
@@ -89,10 +89,15 @@ module physical_receiver(
       update_value <= 0;
       update_cnt <= 0;
       gardner_mertic_sum <= 0;
+      sample_i <= 0;
+      sample_q <= 0;
+      sample_i_prev <= 0;
+      sample_q_prev <= 0;
     end
     else if(in_valid) begin
       phase_cnt <= phase_cnt + 1;
       if(phase_sum == 0) begin
+        found_sof_int <= found_sof;
         sample_i <= (in_data_store_i[1] > 0) ? 1 : -1;
         sample_q <= (in_data_store_q[1] > 0) ? 1 : -1;
         sample_i_prev <= sample_i;
@@ -106,22 +111,14 @@ module physical_receiver(
       if(update_phase) begin
         update_cnt <= update_cnt + 1;
         if(update_cnt == 15) begin
-          // if(update_value > 7) phase <= phase + 1;
-          // else if(update_value < -7) phase <= phase - 1;
-          if(gardner_mertic_sum < -1500) phase <= phase + 1;
-          else if(gardner_mertic_sum > 1500) phase <= phase - 1;
+          if(gardner_mertic_sum < -1800) phase <= phase + 1;
+          else if(gardner_mertic_sum > 1800) phase <= phase - 1;
           update_cnt <= 0;
           update_value <= 0;
           gardner_mertic_sum <= 0;
         end
         else begin
           gardner_mertic_sum <= gardner_mertic_sum + (gardner_mertic_i>>>9) + (gardner_mertic_q>>>9);
-          // if(gardner_mertic_i[22:10] > 100 & gardner_mertic_q[22:10] > 100) begin
-          //   update_value <= (update_value + 1); 
-          // end
-          // else if(gardner_mertic_i[22:10] < -100 & gardner_mertic_q[22:10] < -100) begin
-          //   update_value <= (update_value - 1);
-          // end
         end
       end
     end
@@ -139,16 +136,21 @@ module physical_receiver(
       rot_cnt_i_not <= 0;
       rot_cnt_q <= 0;
       rot_cnt_q_not <= 0;
-      // diff_data_i <= 0;
-      // diff_data_q <= 0;
       found_sof <= 1'b0;
       sof_i_reg <= 0;
-      sof_q_reg <= 0;
+      rot <= 2'b01;
     end
-    else if(phase_sum == 1 & in_valid) begin
-      sof_reg <= {sof_reg[23:0], (diff_data_i > 0) ? 1'b1 : 1'b0};
-      sof_i_reg <= {sof_i_reg[24:0],(in_data_store_i[1] > 0) ? 1'b1 : 1'b0};
-      sof_q_reg <= {sof_q_reg[24:0],(in_data_store_q[1] > 0) ? 1'b1 : 1'b0};
+    else begin
+      if(phase_sum == 1 & in_valid) begin
+        sof_reg <= {sof_reg[23:0], (diff_data_i > 0) ? 1'b1 : 1'b0};
+        sof_i_reg <= {sof_i_reg[24:0],(in_data_store_i[1] > 0) ? 1'b1 : 1'b0};
+        if(rot_cnt_i > 23) rot <= 2'b00;
+        else if(rot_cnt_q_not > 23) rot <= 2'b11;
+        else if(rot_cnt_i_not > 23) rot <= 2'b10;
+        else if(rot_cnt_q > 23) rot <= 2'b01;
+        else rot <= rot;
+      end
+
       correl_cnt = 0;
       correl_cnt_swap = 0;
       rot_cnt_i = 0;
@@ -163,19 +165,12 @@ module physical_receiver(
         rot_cnt_q = xor_sof_q[i]==1'b0 ? (rot_cnt_q + 1) : rot_cnt_q;
         rot_cnt_q_not = xor_sof_q[i]==1'b1 ? (rot_cnt_q_not + 1) : rot_cnt_q_not;
       end
-      if(rot_cnt_i > 23) rot <= 2'b00;
-      else if(rot_cnt_q_not > 23) rot <= 2'b01;
-      else if(rot_cnt_i_not > 23) rot <= 2'b10;
-      else if(rot_cnt_q > 23) rot <= 2'b11;
-      else rot <= rot;
 
       if(correl_cnt > 20) begin
         found_sof <= 1'b1;
-        // iq_swap <= 1'b0;
       end
       else if(correl_cnt_swap > 20) begin
         found_sof <= 1'b1;
-        // iq_swap <= 1'b1;
       end
       else found_sof <= 1'b0;
     end
@@ -185,16 +180,12 @@ module physical_receiver(
   assign xor_sof_i = sof_i_reg^SOF_I;
   assign xor_sof_q = sof_i_reg^SOF_Q;
 
-  // assign sample_i_mux = iq_swap ? sample_q : sample_i;
-  // assign sample_q_mux = iq_swap ? sample_i : sample_q; 
-
   const logic [1:0] QPSK_ARR [0:3] = {2'b00, 2'b10, 2'b11, 2'b01}; 
 
   always @(posedge clk) begin
     if(rst) begin
       frame_cnt <= 0;
       out_valid <= 1'b0;
-      rot <= 2'b0;
       space_cnt <= 2'b0;
     end
     else begin
@@ -202,7 +193,7 @@ module physical_receiver(
       else if(phase_sum < 3) space_cnt <= 2'b0;
       else space_cnt <= 3'b111;
 
-      if(phase_sum > 2 & (found_sof | frame_cnt != 0) & space_cnt==0) begin
+      if(phase_sum > 2 & (found_sof_int | frame_cnt != 0) & space_cnt==0) begin
         out_valid <= 1'b1;
         if(frame_cnt < 62) frame_cnt <= frame_cnt + 1;
         else frame_cnt <= 0;
@@ -219,5 +210,4 @@ module physical_receiver(
     end
   end
 
-  // assign out_valid = phase_sum == 1;
 endmodule

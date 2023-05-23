@@ -14,7 +14,7 @@ module test_source(
     (* X_INTERFACE_INFO = "xilinx.com:interface:axis:1.0 axis_in TVALID" *)
     input wire in_valid,
     (* X_INTERFACE_INFO = "xilinx.com:interface:axis:1.0 axis_in TDATA" *)
-    input wire [23:0] in_data,
+    input wire [1:0] in_data,
     (* X_INTERFACE_INFO = "xilinx.com:interface:axis:1.0 axis_in TREADY" *)
     output wire in_ready
     );
