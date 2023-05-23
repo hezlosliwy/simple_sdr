@@ -28,14 +28,14 @@ module ad9363_stream (
 );
 
   typedef enum { ST_IDLE, ST_I, ST_Q }  t_controler_state;
-  (* MARK_DEBUG = "TRUE" *) t_controler_state tx_ctrl_state;
+  t_controler_state tx_ctrl_state;
 
   reg [11:0] in_data_i_int;
   reg [11:0] in_data_q_int;
 
   reg [23:0] rx_data;
   reg rx_valid;
-  (* MARK_DEBUG = "TRUE" *) reg tx_ready;
+  reg tx_ready;
   reg tx_valid;
   reg [23:0] tx_data;
   reg arst, arst_sync;
