@@ -2,14 +2,14 @@
 
 
 module bch_decoder (
-    input wire clk,
-    input wire rst,
-    input wire in_valid,
-    input wire in_data,
-    input wire in_ready,
-    input wire out_valid,
-    input wire out_data,
-    input wire out_ready
+    input  wire clk,
+    input  wire rst,
+    input  wire in_valid,
+    input  wire in_data,
+    output wire in_ready,
+    output wire out_valid,
+    output wire out_data,
+    input  wire out_ready
   );
   function logic[5:0] mult_by_a(logic[5:0] a); // a * x mod x6+x+1
     return {a[4:0],1'b0}^{4'b0, a[5], a[5]};
@@ -57,6 +57,7 @@ module bch_decoder (
   logic [5:0] e, err_code;
 
   logic [5:0] syndrome_cnt;
+  logic out_valid_int;
   logic [5:0] err_cnt;
   logic [62:0] data_reg;
   assign err_found = (err_code==1);
@@ -108,53 +109,32 @@ module bch_decoder (
           end else begin
             bch_state <= ST_UNLOAD;
           end
+          out_valid_int <= 1'b1;
         end
         ST_FIND_ERRORS: begin
-          syndrome_cnt <= syndrome_cnt + 6'b1;
-          if(syndrome_cnt==6'd62) begin
-            syndrome_cnt <= 6'b0;
-            bch_state <= ST_IDLE;
+          if(out_ready) begin
+            syndrome_cnt <= syndrome_cnt + 6'b1;
+            if(syndrome_cnt==6'd62) begin
+              syndrome_cnt <= 6'b0;
+              bch_state <= ST_IDLE;
+            end
+            e <= mult(e, inverse(6'b000010));
+            data_reg <= {data_reg[61:0], 1'b0};
           end
-          e <= mult(e, inverse(6'b000010));
-          data_reg <= {data_reg[61:0], 1'b0};
-          // $display("Error on %d, %6b", err_cnt, err_code);
         end
         ST_UNLOAD: begin
-          syndrome_cnt <= syndrome_cnt + 6'b1;
-          data_reg <= {data_reg[61:0], 1'b0};
-          if(syndrome_cnt==6'd62) begin
-            syndrome_cnt <= 6'b0;
-            bch_state <= ST_IDLE;
+          if(out_ready) begin
+            syndrome_cnt <= syndrome_cnt + 6'b1;
+            data_reg <= {data_reg[61:0], 1'b0};
+            if(syndrome_cnt==6'd62) begin
+              out_valid_int <= 1'b0;
+              syndrome_cnt <= 6'b0;
+              bch_state <= ST_IDLE;
+            end
           end
         end
       endcase
     end
   end
-
-  // always @(in_data) begin
-  //   a1 = 6'b000001;
-  //   a3 = 6'b000001;
-  //   S1 = 6'b000000;
-  //   S3 = 6'b000000;
-  //   for(int i = 0;i<63;i=i+1)
-  //   begin
-  //     S1 = in_data ? S1 ^ a1 : S1;
-  //     S3 = in_data ? S3 ^ a3 : S3;
-  //     a1 = mult_by_a(a1);
-  //     a3 = mult_by_a(mult_by_a(mult_by_a(a3)));
-  //   end
-  //   sig1 = S1;
-  //   sig2 = mult(S1,S1) ^ mult(S3,inverse(S1));
-
-  //   e=6'b1;
-  //   for(int i = 0; i<63;i=i+1)
-  //   begin
-  //     err_code = mult(sig1,e) ^ mult(sig2,mult(e,e));
-  //     if(err_code==6'b1) begin
-  //       $display("Error on %d, %6b", i, err_code);
-  //     end
-  //     e = mult(e, 6'b100001);
-  //   end
-  // end
 
 endmodule

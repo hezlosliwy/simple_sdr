@@ -10,6 +10,7 @@ module tb_bch_decoder ();
     logic rst;
     logic clk = 0;
     integer data_cnt = 0;
+    logic out_ready = 0;
     const logic [62:0] correct_data = 63'b011011100111100100011110000000011010101000111001110110010111100;
     assign in_data = correct_data ^ (1<<(e1)) ^ (1<<(e2)); //63'h7FFFFFFFFFFFFFFF
     assign in_valid = ~rst;
@@ -26,6 +27,7 @@ initial begin
 end
 
 always @(posedge clk) begin
+    out_ready <= 1;//$random();
     if(data_cnt == 62 & ~rst) begin
         e1 <= $urandom() % 63;
         e2 <= $urandom() % 63;
@@ -34,8 +36,8 @@ always @(posedge clk) begin
     if(in_ready) begin
         data_cnt = (data_cnt + 1) % 63;
     end
-    if(out_valid) begin
-        output_data = {output_data[61:0], out_data};
+    if(out_valid & out_ready) begin
+        output_data = {output_data[61:0], out_data};// output_data = {output_data[61:12], out_data, 12'b0};
     end
 end
 
