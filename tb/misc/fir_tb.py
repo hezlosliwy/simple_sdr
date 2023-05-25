@@ -17,7 +17,7 @@ for i in coefs:
 
 def save_vector_to_file(vect, f_name):
     f = open(f_name, "wb")
-    print(len(vect[0]))
+    print(f"Vector len: {len(vect[0])}")
     for i in range(len(vect[0])):
         f.write(int(vect[0][i]).to_bytes(length=2, byteorder="big", signed=True)) #write i
         f.write(int(vect[1][i]).to_bytes(length=2, byteorder="big", signed=True)) #write q
@@ -45,14 +45,15 @@ plt.plot(h_rrc, "x")
 
 # generate vector
 
-in_vect_i, in_vect_q = np.array([[i]*8 for i in np.random.choice([1.0, -1.0], size=in_len)]).flatten(), np.array([[i]*8 for i in np.random.choice([1.0, -1.0], size=in_len)]).flatten()
-
+# in_vect_i, in_vect_q = np.array([[i]*8 for i in np.random.choice([1.0, -1.0], size=in_len)]).flatten(), np.array([[i]*8 for i in np.random.choice([1.0, -1.0], size=in_len)]).flatten()
+in_vect_i = [1.0,-1.0,1.0,-1.0,1.0,1.0,-1.0,-1.0,-1.0,-1.0,1.0,1.0,-1.0,1.0,-1.0,-1.0,1.0,-1.0,-1.0,1.0,1.0,-1.0,1.0,-1.0,1.0,-1.0,1.0,1.0,1.0,-1.0,-1.0,-1.0,-1.0,-1.0,-1.0,1.0,-1.0,-1.0,-1.0,-1.0,1.0,-1.0,-1.0,1.0,1.0,-1.0,-1.0,1.0,1.0,1.0]
+in_vect_q = [1.0,-1.0,1.0,-1.0,1.0,1.0,-1.0,-1.0,-1.0,-1.0,1.0,1.0,-1.0,1.0,-1.0,1.0,-1.0,1.0,-1.0,1.0,-1.0,1.0,-1.0,-1.0,1.0,1.0,1.0,-1.0,1.0,-1.0,1.0,-1.0,-1.0,1.0,1.0,1.0,-1.0,-1.0,1.0,1.0,1.0,-1.0,1.0,1.0,-1.0,1.0,1.0,-1.0,-1.0,-1.0]
 out_vect_i, out_vect_q = np.correlate(in_vect_i, h_rrc), np.correlate(in_vect_q, h_rrc) # *(2**11-1) *(2**11-1)
 
 #save vectors
 
-save_vector_to_file([in_vect_i, in_vect_q], "vectors.in")
-save_vector_to_file([out_vect_i, out_vect_q], "vectors.out")
+# save_vector_to_file([in_vect_i, in_vect_q], "vectors.in")
+# save_vector_to_file([out_vect_i, out_vect_q], "vectors.out")
 
 # plt.figure()
 # plt.plot(in_vect_i, "x")

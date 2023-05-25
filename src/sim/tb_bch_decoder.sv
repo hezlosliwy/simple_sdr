@@ -14,6 +14,7 @@ module tb_bch_decoder ();
     const logic [62:0] correct_data = 63'b100001001010111101101000011010000010010110101010110110000000110;
     assign in_data = correct_data ^ (1<<(e1)) ^ (1<<(e2)); //63'h7FFFFFFFFFFFFFFF
     assign in_valid = ~rst;
+
 initial begin
     forever begin
         clk = #10 ~clk;
@@ -50,6 +51,7 @@ bch_decoder DUT(
     .out_valid(out_valid),
     .out_data(out_data),
     .out_ready(out_ready)
+
 );
 
 endmodule
