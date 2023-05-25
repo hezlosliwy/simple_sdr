@@ -81,8 +81,8 @@ module bch_decoder (
         ST_IDLE:
           if(in_valid) begin
             bch_state <= ST_SYNDROME;
-            a1 <= 6'b000001;
-            a3 <= 6'b000001;
+            a1 <= inverse(6'b10);
+            a3 <= inverse(6'b1000);
             S1 <= 6'b000000;
             S3 <= 6'b000000;
           end
@@ -91,8 +91,8 @@ module bch_decoder (
             data_reg <= {data_reg[61:0], in_data};
             S1 <= in_data ? (S1 ^ a1) : S1;
             S3 <= in_data ? (S3 ^ a3) : S3;
-            a1 = mult_by_a(a1);
-            a3 = mult_by_a(mult_by_a(mult_by_a(a3)));
+            a1 = mult(a1,inverse(6'b10));
+            a3 = mult(a3,inverse(6'b1000));
             syndrome_cnt <= syndrome_cnt + 6'b1;
             if(syndrome_cnt==6'd62) begin
               syndrome_cnt <= 6'b0;
@@ -105,7 +105,7 @@ module bch_decoder (
           sig2 <= mult(S1,S1) ^ mult(S3,inverse(S1));
           if(S1!=0 & S3!=0) begin
             bch_state <= ST_FIND_ERRORS;
-            e <= 6'b1;
+            e <= 6'b10;
           end else begin
             bch_state <= ST_UNLOAD;
           end
@@ -118,7 +118,10 @@ module bch_decoder (
               syndrome_cnt <= 6'b0;
               bch_state <= ST_IDLE;
             end
-            e <= mult(e, inverse(6'b000010));
+            // if(err_found) begin
+            //   $display("Error found %d", 62-syndrome_cnt);
+            // end
+            e <= mult(e, 6'b000010);
             data_reg <= {data_reg[61:0], 1'b0};
           end
         end
