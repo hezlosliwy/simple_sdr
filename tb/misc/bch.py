@@ -9,12 +9,12 @@ import numpy as np
 # print(bin(int('721', 16)))
 
 
-# print(gf6.primitive_element)
 # print(bin(gf6('x^1 + 1')**2))
 
 ccsds = galois.BCH(63, 51)
-gf6 = galois.GF(2**6)
-
+gf6 = galois.GF(2**6, irreducible_poly="x^6+x+1")
+print(gf6.primitive_element)
+print(ccsds.generator_poly)
 st = [i for i in range(63)]
 
 def find_error(err_pos):
@@ -29,25 +29,15 @@ def find_error(err_pos):
   # print(len(r))
   a = gf6.primitive_element
   N = 63
-  S1 = 0
+  S1, S2, S3 = 0, 0, 0
   for i in range(N):
     if r[i]:
       S1 = S1 ^ a**i
-  S2 = 0
-  for i in range(N):
-    if r[i]:
       S2 = S2 ^ (a**2)**i
-  S3 = 0
-  for i in range(N):
-    if r[i]:
       S3 = S3 ^ (a**3)**i
+
   # print(S1, S2, S3)
 
-  L2 = S3 ^ S1*S2
-  L1 = S1*S2
-  L0 = S1
-
-  sig0 = 1
   sig1 = S1
   sig2 = S1**2 ^ S3*(S1**-1)
   epos1 = []
@@ -58,12 +48,6 @@ def find_error(err_pos):
   if epos1 != err_set:
     print("error :(")
 
-  # print(L2, L1, L0)
-  # epos = []
-  # for j in range(63):
-  #   if (L0 ^ L1*(a**-1)**j ^ L2*(a**(2))**j) == 0:
-  #     epos.append(j)
-      # break
   # epos = ((epos & 0xFE) >> 1) | ((epos & 0x01)<<5)
   print(f"real error pos {err_set}, found err pos {epos1}")
   # print(f"real error pos {err_pos}, found err pos {epos}")
@@ -73,3 +57,13 @@ for i in range(62):
   find_error(i)
 # S1 = S1 % [1, 0, 0, 0, 0, 1, 1]
 # (x6+x+1)(x6+x4+x2+x+1)
+
+# for i in range(1, 64):
+#   print("6'b"+(bin(gf6(i)**-1)[2:]).zfill(6), end=", ")
+
+# r = ccsds.encode([1 for i in range(51)])
+# print(r)
+#for i in range(10):
+#  v = [np.random.choice([0,1]) for i in range(51)]
+#  r = ccsds.encode(v)
+#  print("".join([f"{i}" for i in v]).zfill(51), "".join([f"{i}" for i in r]).zfill(63))
