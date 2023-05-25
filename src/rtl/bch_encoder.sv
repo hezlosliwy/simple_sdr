@@ -3,8 +3,8 @@
 module bch_encoder(
         input wire clk,
         input wire rst,
-        input wire ready_in,
-        output reg ready_out,
+        output wire ready_in,
+        input reg ready_out,
         input wire valid_in,
         output reg valid_out,
         input wire data_in,
@@ -26,25 +26,30 @@ module bch_encoder(
             counter <= 0;
             tmp <= 0;
             rest <= 0;
+            valid_out<=0;
         end
         else begin
             case (state)
                 IDLE: begin
-                    if(valid_in && ready_in == 1)begin
+                    //if(valid_in && ready_out == 1)begin
                         state<=WORK;
-                    end
+                        valid_out <= 0;
+                    //end
                 end
                 WORK: begin
-                        counter <= ((ready_in)&&(valid_in))?(counter + 1)%63:counter;
+                        counter <= ((ready_out)&&(valid_in))?(counter + 1)%63:counter;
                         state<=((counter < 50))?WORK:REST;
-                        
+                        valid_out <= (ready_out)? valid_in :valid_out;
                 end
                 REST: begin
-                        state<=(counter <= 62)?REST:RESET;
-                        counter <= (ready_in)?(counter + 1):counter;
+                        valid_out <=(counter <= 62)?1:0;
+                        state<= (counter <= 62)?REST:RESET;
+                        counter <= (ready_out)?(counter + 1):counter;
+                        
                 end
                 RESET: begin
                         state<=IDLE;
+                        valid_out <= 0;
                         rest <=0;
                         tmp<=0;
                         counter<=0;
@@ -54,11 +59,11 @@ module bch_encoder(
         end    
     end
     
-    assign ready_out = ((state==WORK)&&ready_in)?1 :0;
+    assign ready_in = ((state==WORK)&&ready_out)?1 :0;
     
     
     always @ (posedge clk) begin
-        if(state == WORK && (ready_in)&&(valid_in) )begin
+        if(state == WORK && (ready_out)&&(valid_in) )begin
             tmp[62-counter]<=data_in;
             data_out <= data_in;
             rest[0] <= data_in ^ rest[11]; 
@@ -74,7 +79,7 @@ module bch_encoder(
             rest[10] <= rest[9] ^ (data_in  ^ rest[11]);
             rest[11] <= rest[10];
         end
-        else if(state == REST && (ready_in))begin
+        else if(state == REST && (ready_out))begin
             tmp[62-counter]<=rest[62-counter];
             data_out_all <= {data_in_all[50:0],rest[11:0]};//all data out
             data_out<=rest[62-counter];
