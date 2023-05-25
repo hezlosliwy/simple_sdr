@@ -2,6 +2,8 @@ import numpy as np
 from header_tb import add_header
 from fir_tb import coefs, save_vector_to_file
 import scipy.signal as signal
+import galois
+bch = galois.BCH(63, 51)
 
 def qpsk(data_in):
     AMPLITUDE=int(1447)
@@ -36,11 +38,14 @@ def bin_to_file(in_data, fname):
         f.write(i.to_bytes(1, byteorder='little'))
     f.close()
 
-N = 63*120
+N = 51*120
 # in_data = [1 if i=='1' else 0 for i in "1100"*(N//4)]
 # print(in_data)
 in_data = [np.random.choice([0, 1]) for i in range(N)]
-qpsk_i, qpsk_q = qpsk(in_data)
+bch_data = []
+for i in range(len(in_data)//51):
+    bch_data.extend(bch.encode(in_data[i*51:(i+1)*51]))
+qpsk_i, qpsk_q = qpsk(bch_data)
 header_i, header_q = add_header(qpsk_i, qpsk_q)
 # print(header_i)
 # print(header_q)
