@@ -30,15 +30,14 @@ module stream_resizer
 
   logic [$clog2(max(IN_WIDTH,OUT_WIDTH))-1:0] data_cnt;
   logic [DATA_REG_SIZE-1:0] data_reg;
-  const logic [$clog2(max(IN_WIDTH,OUT_WIDTH))-1:0] RESIZE_RATE = max(IN_WIDTH/OUT_WIDTH, OUT_WIDTH/IN_WIDTH);
+  parameter RESIZE_RATE = max(IN_WIDTH/OUT_WIDTH, OUT_WIDTH/IN_WIDTH);
 
   const logic [OUT_WIDTH-1:0] OUT_WIDTH_GND = 0;
 
   assign in_ready = (
-    (data_cnt==0 & out_ready & max(IN_WIDTH, OUT_WIDTH)==IN_WIDTH) |
-    (((data_cnt==0 & out_ready) | data_cnt!=0) & max(IN_WIDTH, OUT_WIDTH)==OUT_WIDTH)
+    (data_cnt==0 & out_ready & DATA_REG_SIZE==IN_WIDTH) |
+    (((data_cnt==0 & out_ready) | data_cnt!=0) & DATA_REG_SIZE==OUT_WIDTH)
     ) & ~rst;
-  assign out_data = data_reg[$bits(data_reg)-1:$bits(data_reg)-OUT_WIDTH];
 
 
   always @(posedge clk) begin
@@ -48,9 +47,9 @@ module stream_resizer
       data_reg <= 0;
     end
     else begin
-      if(max(IN_WIDTH, OUT_WIDTH)==OUT_WIDTH) begin
+      if(DATA_REG_SIZE==OUT_WIDTH) begin
         if(in_valid & in_ready) begin
-          data_reg <= {data_reg[$bits(data_reg)-1-IN_WIDTH:0], in_data};
+          data_reg <= {data_reg[DATA_REG_SIZE-1-IN_WIDTH:0], in_data};
           data_cnt <= (data_cnt!=RESIZE_RATE-1) ? (data_cnt + 1) : 0;
           if(data_cnt==(RESIZE_RATE-1)) out_valid <= 1;
           else out_valid <= 0;
@@ -67,12 +66,14 @@ module stream_resizer
             out_valid <= 1'b1;
           end
           else begin
-            data_reg <= {data_reg[$bits(data_reg)-1-OUT_WIDTH:0], OUT_WIDTH_GND};
+            data_reg <= {data_reg[DATA_REG_SIZE-1-OUT_WIDTH:0], OUT_WIDTH_GND};
           end
         end
         else if(out_ready) out_valid <= 0;
       end
     end
   end
+
+  assign out_data = data_reg[DATA_REG_SIZE-1:DATA_REG_SIZE-OUT_WIDTH];
 
 endmodule

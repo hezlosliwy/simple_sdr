@@ -1,6 +1,6 @@
 import numpy as np
 from header_tb import add_header
-from fir_tb import coefs, save_vector_to_file
+from fir_tb import coefs, coefs_rc, save_vector_to_file
 import scipy.signal as signal
 import galois
 bch = galois.BCH(63, 51)
@@ -45,6 +45,9 @@ in_data = [np.random.choice([0, 1]) for i in range(N)]
 bch_data = []
 for i in range(len(in_data)//51):
     bch_data.extend(bch.encode(in_data[i*51:(i+1)*51]))
+    # print("".join([str(i) for i in in_data[i*51:(i+1)*51]]))
+    # print("".join([str(int(i)) for i in bch_data]))
+    # quit()
 qpsk_i, qpsk_q = qpsk(bch_data)
 header_i, header_q = add_header(qpsk_i, qpsk_q)
 # print(header_i)
@@ -53,8 +56,9 @@ header_i, header_q = add_header(qpsk_i, qpsk_q)
 
 header_i, header_q = np.array([[i]*8 for i in header_i]).flatten(), np.array([[i]*8 for i in header_q]).flatten()
 fir_i, fir_q = np.correlate(header_i, coefs), np.correlate(header_q, coefs)
-
 save_vector_to_file([fir_i, fir_q], "tb.out")
+fir_i, fir_q = np.correlate(header_i, coefs_rc), np.correlate(header_q, coefs_rc)
+save_vector_to_file([fir_i, fir_q], "tb_rx.out")
 bin_to_file(in_data, "tb.in")
 
 # import matplotlib.pyplot as plt

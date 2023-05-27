@@ -113,7 +113,7 @@ module bch_decoder (
         ST_FIND_ERRORS: begin
           if(out_ready) begin
             syndrome_cnt <= syndrome_cnt + 6'b1;
-            if(syndrome_cnt==6'd62) begin
+            if(syndrome_cnt==6'd50) begin
               syndrome_cnt <= 6'b0;
               bch_state <= ST_IDLE;
             end
@@ -128,7 +128,7 @@ module bch_decoder (
           if(out_ready) begin
             syndrome_cnt <= syndrome_cnt + 6'b1;
             data_reg <= {data_reg[61:0], 1'b0};
-            if(syndrome_cnt==6'd62) begin
+            if(syndrome_cnt==6'd50) begin
               out_valid_int <= 1'b0;
               syndrome_cnt <= 6'b0;
               bch_state <= ST_IDLE;

@@ -4,7 +4,7 @@ module tb_rx_path;
 
 localparam CLK_PERIOD = 20;
 
-logic clk;
+logic clk, out_clk;
 logic rst = 1'b1;
 
 logic [15:0] in_stream_data_i, in_stream_data_q;
@@ -12,14 +12,11 @@ logic [23:0] in_stream;
 logic [1:0] iq_rot = 0;
 logic [7:0] out_stream_data;
 logic out_stream_valid;
-logic [1:0] out_stream;
-integer out_cnt = 0;
 logic [7:0] out_model_data;
 logic out_model_valid;
 logic out_model_ready = 0;
 logic err;
 logic eof1, eof2, eof;
-integer out_cnter = 0;
 initial begin : system_clock
   clk = 1'b0;
   forever begin
@@ -27,9 +24,16 @@ initial begin : system_clock
   end
 end
 
+initial begin
+  out_clk = 1'b0;
+  forever begin
+    out_clk = #(CLK_PERIOD/2/8) ~out_clk;
+  end
+end
+
 axis_fsource #(
     .DATA_WIDTH_IN_BYTES(4),
-    .FILE_NAME("tb.out")
+    .FILE_NAME("tb_rx.out")
 ) in_source
   (
     .clk(clk),
@@ -55,34 +59,50 @@ axis_fsource #(
     endcase
   end
 
+  logic [23:0] DUT_data;
+
+  fifo_async
+  #(
+    .WRITE_DATA_WIDTH(24),
+    .READ_DATA_WIDTH(24),
+    .DATA_DEPTH(16)
+  ) cdc_fifo
+  (
+      .rst(rst),
+      .in_clk(clk),
+      .in_valid(in_stream_valid),
+      .in_ready(in_stream_ready),
+      .in_data(in_stream),
+      .out_clk(out_clk),
+      .out_valid(DUT_valid),
+      .out_ready(DUT_ready),
+      .out_data(DUT_data)
+  );
+
   RX_path_top DUT(
-    .clk(clk),
+    .clk(out_clk),
     .rst(rst),
+    .out_ready(1'b1),
     .out_valid(out_stream_valid),
-    .out_data(out_stream),
-    .in_valid(in_stream_valid),
-    .in_data(in_stream),
-    .in_ready(in_stream_ready)
+    .out_data(out_stream_data),
+    .in_valid(DUT_valid),
+    .in_data(DUT_data),
+    .in_ready(DUT_ready)
   );
 
 task automatic process_output();
-  out_cnt = 0;
   while(1) begin
-    @(posedge clk)
+    @(posedge out_clk)
     if(out_stream_valid) begin
-      out_stream_data = {out_stream_data[5:0], out_stream};
-      out_cnt = out_cnt + 1;
-      if(out_cnt == 4) begin
-        out_model_ready = 1'b1;
-        if(out_model_data!=out_stream_data) begin
-          $display("Error expected: %h, received: %h", out_model_data, out_stream_data);
-          err = 1'b1;
-        end
-        @(posedge clk)
-        err = 1'b0;
-        out_model_ready = 1'b0;
-        break;
+      out_model_ready = 1'b1;
+      if(out_model_data!=out_stream_data) begin
+        $display("Error expected: %h, received: %h", out_model_data, out_stream_data);
+        err = 1'b1;
       end
+      @(posedge out_clk)
+      err = 1'b0;
+      out_model_ready = 1'b0;
+      break;
     end
     if(eof) break;
   end
@@ -91,7 +111,6 @@ endtask
 initial begin
   for(int i=0;i<4;i=i+1) begin
     rst = 1'b1;
-    out_cnt = 0;
     repeat(4*16)@(posedge clk);
     rst = 1'b0;
     $display("reset done");
@@ -104,16 +123,12 @@ initial begin
   $finish;
 end
 
-always @(posedge clk) begin
-  if(out_model_valid & out_model_ready) out_cnter <= out_cnter + 1;
-end
-
 axis_fsource #(
     .DATA_WIDTH_IN_BYTES(1),
     .FILE_NAME("tb.in")
 ) out_source
   (
-    .clk(clk),
+    .clk(out_clk),
     .rst(rst),
     .out_data (out_model_data),
     .out_valid(out_model_valid),
