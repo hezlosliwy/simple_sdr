@@ -37,22 +37,27 @@ module bch_encoder(
                     //end
                 end
                 WORK: begin
-                        counter <= ((ready_out)&&(valid_in))?(counter + 1)%63:counter;
+                    if(valid_in & ready_out) begin
+                        counter <= (counter + 1)%63;
                         state<=((counter < 50))?WORK:REST;
-                        valid_out <= (ready_out)? valid_in :valid_out;
+                        valid_out <= 1'b1;
+                    end
                 end
                 REST: begin
-                        valid_out <=(counter <= 62)?1:0;
-                        state<= (counter <= 62)?REST:RESET;
-                        counter <= (ready_out)?(counter + 1):counter;
-                        
+                    if(ready_out) begin
+                        valid_out <=(counter < 63)?1:0;
+                        state<= (counter < 63)?REST:RESET;
+                        counter <= (counter + 1);
+                    end
                 end
                 RESET: begin
-                        state<=IDLE;
+                    if(ready_out) begin
+                        state<=WORK;
                         valid_out <= 0;
                         rest <=0;
                         tmp<=0;
                         counter<=0;
+                    end
                 end
                 
             endcase    
@@ -63,29 +68,34 @@ module bch_encoder(
     
     
     always @ (posedge clk) begin
-        if(state == WORK && (ready_out)&&(valid_in) )begin
-            tmp[62-counter]<=data_in;
-            data_out <= data_in;
-            rest[0] <= data_in ^ rest[11]; 
-            rest[1] <= rest[0]; 
-            rest[2] <= rest[1];
-            rest[3] <= rest[2] ^ (data_in  ^ rest[11]);
-            rest[4] <= rest[3] ^ (data_in  ^ rest[11]);
-            rest[5] <= rest[4] ^ (data_in  ^ rest[11]);
-            rest[6] <= rest[5];
-            rest[7] <= rest[6];
-            rest[8] <= rest[7] ^ (data_in  ^ rest[11]);
-            rest[9] <= rest[8];
-            rest[10] <= rest[9] ^ (data_in  ^ rest[11]);
-            rest[11] <= rest[10];
+        if(rst) begin
+            rest <= 0;
+            data_out <= 0;
         end
-        else if(state == REST && (ready_out))begin
-            tmp[62-counter]<=rest[62-counter];
-            data_out_all <= {data_in_all[50:0],rest[11:0]};//all data out
-            data_out<=rest[62-counter];
-            rest[12:0]<=rest[12:0];
+        else begin
+            if(state == WORK && (ready_out)&&(valid_in) )begin
+                tmp[62-counter]<=data_in;
+                data_out <= data_in;
+                rest[0] <= data_in ^ rest[11]; 
+                rest[1] <= rest[0]; 
+                rest[2] <= rest[1];
+                rest[3] <= rest[2] ^ (data_in  ^ rest[11]);
+                rest[4] <= rest[3] ^ (data_in  ^ rest[11]);
+                rest[5] <= rest[4] ^ (data_in  ^ rest[11]);
+                rest[6] <= rest[5];
+                rest[7] <= rest[6];
+                rest[8] <= rest[7] ^ (data_in  ^ rest[11]);
+                rest[9] <= rest[8];
+                rest[10] <= rest[9] ^ (data_in  ^ rest[11]);
+                rest[11] <= rest[10];
+            end
+            else if(state == REST && (ready_out))begin
+                tmp[62-counter]<=rest[62-counter];
+                data_out_all <= {data_in_all[50:0],rest[11:0]};//all data out
+                data_out<=rest[62-counter];
+                rest[12:0]<=rest[12:0];
+            end
         end
-         
     end
     
 endmodule

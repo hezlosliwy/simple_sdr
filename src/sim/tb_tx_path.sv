@@ -94,8 +94,20 @@ fifo_async
     .in_data({o_I, o_Q}),
     .out_clk(out_clk),
     .out_valid(fifo_out_valid),
-    .out_ready(1'b1),
+    .out_ready(fifo_out_ready),
     .out_data({fifo_I_output, fifo_Q_output})
+);
+
+logic [1:0] pl_data;
+
+physical_receiver my_receiver(
+  .clk(out_clk),
+  .rst(rst),
+  .in_valid(fifo_out_valid),
+  .in_data({fifo_I_output, fifo_Q_output}),
+  .in_ready(fifo_out_ready),
+  .out_valid(pl_valid),
+  .out_data(pl_data)
 );
 
 axis_fsource #(

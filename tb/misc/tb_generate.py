@@ -38,7 +38,7 @@ def bin_to_file(in_data, fname):
         f.write(i.to_bytes(1, byteorder='little'))
     f.close()
 
-N = 51*120
+N = 51*1200
 # in_data = [1 if i=='1' else 0 for i in "1100"*(N//4)]
 # print(in_data)
 in_data = [np.random.choice([0, 1]) for i in range(N)]
@@ -60,7 +60,7 @@ save_vector_to_file([fir_i, fir_q], "tb.out")
 fir_i, fir_q = np.correlate(header_i, coefs_rc), np.correlate(header_q, coefs_rc)
 save_vector_to_file([fir_i, fir_q], "tb_rx.out")
 bin_to_file(in_data, "tb.in")
-
+bin_to_file(bch_data, "bch.out")
 # import matplotlib.pyplot as plt
 
 # print(in_data[0:64])

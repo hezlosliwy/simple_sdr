@@ -15,7 +15,7 @@ module qpsk_mod(
 const logic [11:0] ampl = 12'd1447;
 
 always@(posedge clk) begin
-  if (!rst_n) begin 
+  if (~rst_n) begin 
     out_i <= 12'b0;
     out_q <= 12'b0;
     out_valid <= 1'b0;
@@ -40,7 +40,7 @@ always@(posedge clk) begin
         out_q <= ampl;
       end
     end
-    else out_valid <= out_valid ? ~out_ready : 0;
+    else if(out_ready)out_valid <= 0;
   end
 end
 

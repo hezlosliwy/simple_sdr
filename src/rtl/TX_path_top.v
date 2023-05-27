@@ -32,12 +32,12 @@ wire [1:0] resizer_qpsk_data;
 bch_encoder my_bch(
   .clk(clk),
   .rst(rst),
-  .ready_out(in_ready), //in_ready
-  .valid_in(in_valid), //in_valid
-  .data_in(in_data), //in_data
-  .ready_in(bch_resizer_ready), //out_ready
-  .valid_out(bch_resizer_valid), //out_valid
-  .data_out(bch_resizer_data), //out_data
+  .ready_in(in_ready), 
+  .valid_in(in_valid), 
+  .data_in(in_data),   
+  .ready_out(bch_resizer_ready),
+  .valid_out(bch_resizer_valid),
+  .data_out(bch_resizer_data),
   .data_in_all(),
   .data_out_all()
 );

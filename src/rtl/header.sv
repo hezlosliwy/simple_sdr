@@ -23,7 +23,7 @@ module header (
   const logic [0:25] SOF = 26'b01100011010010111010000010; // 0x18D2E82
   logic bpsk_bit;
 
-  assign in_ready = (header_state==ST_PAYLOAD & (out_ready | ~out_valid));
+  assign in_ready = (header_state==ST_PAYLOAD & (out_ready | (~out_valid)));
 
   always @(posedge clk)
   begin
@@ -53,7 +53,7 @@ module header (
           end
         end
         ST_PAYLOAD: begin
-          if(in_valid & out_ready) begin
+          if(in_valid & in_ready) begin
             payload_cnt <= payload_cnt + 1;
             if(payload_cnt == 8'd62)
             begin
@@ -89,7 +89,7 @@ module header (
         end
       end
       ST_PAYLOAD: begin
-        if(in_ready) begin
+        if(in_ready & in_valid) begin
           out_i <= in_i;
           out_q <= in_q;
         end
