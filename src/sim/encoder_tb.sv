@@ -5,7 +5,14 @@ module encoder_tb(
     reg clk =0;
     reg rst = 0; 
     reg data_in;
-    reg [50:0] data_in_all = 51'b011011011110110110001111011001011110011001101100011;
+    reg [50:0] data_in_all [9:0] = {51'b100001001010111101101000011010000010010110101010110,51'b000100000011100011010110000100101001000011111000101,
+    51'b011011011110110110001111011001011110011001101100011,51'b101010011100110010001100011010111101110001000101011,
+    51'b010110101101001111001110100100000010101111010001100,51'b101010111111011101100001011001110001110011001110011,
+    51'b011111100000110011101001010100011001001011110100100,51'b100001010110010011100011011011000001000010101010010,
+    51'b110001000110110101011101010110101110101001010101110,51'b110101000010001001001000000100010111100011010110011};
+    reg [50:0] data_in_all_tmp;
+    reg [50:0] data_in_all_prev;
+    int temp; 
     reg [62:0] data_out_all;
     reg data_out,data_out2;
     reg ready_out,ready_out2;
@@ -21,17 +28,24 @@ module encoder_tb(
       
       initial begin
              rst = 1; repeat(2)@(posedge clk);rst = 0;
+             temp = $urandom_range(0,9);
+             data_in_all_tmp = data_in_all[temp];
 //           10 ready_in=1;
             #10 valid_in=1;
       end
     always @(posedge clk) begin
-
+        
         if(ready_in)begin
-
-            data_in = data_in_all[i];
+           // if
+            
+            
+            data_in = data_in_all_tmp[i];
             i = i-1;
         end
         if(i<0)begin
+            data_in_all_prev = data_in_all_tmp;
+            temp = $urandom_range(0,9);
+            data_in_all_tmp = data_in_all[temp];
             i = 7'd50;
             
         end
@@ -47,7 +61,7 @@ module encoder_tb(
     valid_in,
     valid_out,
     data_in,
-    data_in_all,
+    data_in_all_tmp,
     data_out_all,
     data_out
     );
@@ -74,5 +88,12 @@ module encoder_tb(
     
      always @(posedge clk) begin
         checkdata<={checkdata[61:0],out_data};
+        if(i==39 && (checkdata[61]==0||checkdata[61]==1))begin
+            if(checkdata[62:12] == data_in_all_prev)
+                $display("test passed");
+            else
+                $display("test failed");
+        end
+        
      end
 endmodule
