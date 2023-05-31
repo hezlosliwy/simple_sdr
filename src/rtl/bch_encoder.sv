@@ -8,33 +8,25 @@ module bch_encoder(
         input wire valid_in,
         output reg valid_out,
         input wire data_in,
-        input wire [50:0] data_in_all,
-        output reg [62:0] data_out_all,
         output reg data_out
     );
-    //reg [7:0] exp =  8'b11000101;
-    //reg [12:0] exp =  13'b1010100111001;
     typedef enum {IDLE, RESET, WORK, REST} state_t;
     state_t state;
     int counter = 0;
-    reg [62:0] tmp = 0; 
-    reg [12:0] rest = 0; 
+    reg [11:0] rest = 0; 
  
     always @ (posedge clk) begin
         if(rst)begin
             state <= IDLE;
             counter <= 0;
-            tmp <= 0;
             rest <= 0;
             valid_out<=0;
         end
         else begin
             case (state)
                 IDLE: begin
-                    //if(valid_in && ready_out == 1)begin
                         state<=WORK;
                         valid_out <= 0;
-                    //end
                 end
                 WORK: begin
                     if(valid_in & ready_out) begin
@@ -54,8 +46,7 @@ module bch_encoder(
                     if(ready_out) begin
                         state<=WORK;
                         valid_out <= 0;
-                        rest <=0;
-                        tmp<=0;
+                        rest <=0;;
                         counter<=0;
                     end
                 end
@@ -74,7 +65,6 @@ module bch_encoder(
         end
         else begin
             if(state == WORK && (ready_out)&&(valid_in) )begin
-                tmp[62-counter]<=data_in;
                 data_out <= data_in;
                 rest[0] <= data_in ^ rest[11]; 
                 rest[1] <= rest[0]; 
@@ -90,10 +80,8 @@ module bch_encoder(
                 rest[11] <= rest[10];
             end
             else if(state == REST && (ready_out))begin
-                tmp[62-counter]<=rest[62-counter];
-                data_out_all <= {data_in_all[50:0],rest[11:0]};//all data out
-                data_out<=rest[62-counter];
-                rest[12:0]<=rest[12:0];
+                data_out<=rest[11];
+                rest = {rest[10:0],1'b0};
             end
         end
     end

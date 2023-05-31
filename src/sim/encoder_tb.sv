@@ -12,7 +12,8 @@ module encoder_tb(
     51'b110001000110110101011101010110101110101001010101110,51'b110101000010001001001000000100010111100011010110011};
     reg [50:0] data_in_all_tmp;
     reg [50:0] data_in_all_prev;
-    int temp; 
+    int temp;
+    int i_c=0; 
     reg [62:0] data_out_all;
     reg data_out,data_out2;
     reg ready_out,ready_out2;
@@ -20,8 +21,9 @@ module encoder_tb(
     reg valid_out;
     reg valid_in=0;
     reg out_data ;
+    reg checking;
     reg out_valid ,out_ready;
-    reg [62:0] checkdata;
+    reg [50:0] checkdata;
     always
         #5 clk <= ~clk;
     int i = 7'd50;  
@@ -61,8 +63,6 @@ module encoder_tb(
     valid_in,
     valid_out,
     data_in,
-    data_in_all_tmp,
-    data_out_all,
     data_out
     );
     
@@ -86,14 +86,35 @@ module encoder_tb(
     1'b1
     );
     
-     always @(posedge clk) begin
-        checkdata<={checkdata[61:0],out_data};
-        if(i==39 && (checkdata[61]==0||checkdata[61]==1))begin
-            if(checkdata[62:12] == data_in_all_prev)
-                $display("test passed");
-            else
-                $display("test failed");
-        end
+    task check (input [50:0] checkdata, input [50:0] data_in_all_prev);
         
-     end
+        begin
+            if(checkdata == data_in_all_prev)
+                $display("test passed",checkdata,"   " ,data_in_all_prev);
+            else
+                $display("test failed",checkdata,"   " ,data_in_all_prev);
+        end   
+    endtask
+    
+    
+    always @(posedge clk )begin
+        if(out_valid == 1)begin
+            checkdata<={checkdata[50:0],out_data};
+            i_c <= (i_c + 1)%51;
+            checking<= 0;
+        end
+        if(i_c==0 && checking == 0)begin
+            checking<=1;
+            check(checkdata,data_in_all_prev);
+        end
+    end 
+    
+//        checkdata<={checkdata[50:0],out_data};
+//        if(i==50 && (checkdata[50]==0||checkdata[50]==1))begin
+//            if(checkdata == data_in_all_prev)
+//                $display("test passed",checkdata,"   " ,data_in_all_prev);
+//            else
+//                $display("test failed",checkdata,"   " ,data_in_all_prev);
+//        end
+        
 endmodule
