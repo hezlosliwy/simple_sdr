@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 
-module test_source(
+module data_packager(
     input wire clk,
     input wire rst,
     //output stream to fifo
@@ -111,5 +111,56 @@ module test_source(
     end
 
     assign in_resizer_ready = framegen_state == ST_PAYLOAD & out_ready;
+
+    ///////////////////////////////////////////////////////////////////////////////
+
+    logic rx_in_valid;
+    logic [101:0] rx_frame, rx_frame_buff;
+    logic rx_ready;
+    logic fifo_package_valid;
+
+    stream_resizer
+    #(
+      .IN_WIDTH(1),
+      .OUT_WIDTH(102)
+    ) bch_stream_resizer (
+      .clk(clk),
+      .rst(rst),
+      .in_valid(in_valid),
+      .in_data(in_data),
+      .in_ready(in_ready),
+      .out_valid(rx_in_valid),
+      .out_data(rx_frame),
+      .out_ready(rx_ready)
+    );
+
+    always @(posedge clk) begin : frame_packager
+        rx_frame_buff <= rx_frame;
+        if(rst) begin
+            fifo_package_valid <= 1'b0;
+        end
+        else begin
+            if (rx_in_valid) begin
+                if (rx_frame[101:95] == 6'b0) fifo_package_valid <= 1'b1;
+                else fifo_package_valid <= 1'b0;
+            end
+            else fifo_package_valid <= 1'b0;
+        end
+    end
+
+    stream_resizer
+    #(
+      .IN_WIDTH(102),
+      .OUT_WIDTH(32)
+    ) output_stream_resizer (
+      .clk(clk),
+      .rst(rst),
+      .in_valid(fifo_package_valid),
+      .in_data(rx_frame_buff),
+      .in_ready(rx_ready),
+      .out_valid(rx_in_valid),
+      .out_data(out_fifo_data),
+      .out_ready(out_fifo_ready)
+    );
 
 endmodule

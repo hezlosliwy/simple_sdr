@@ -40,7 +40,7 @@ if { [string first $scripts_vivado_version $current_vivado_version] == -1 } {
 
 # The design that will be created by this Tcl script contains the following 
 # module references:
-# RX_path_top, TX_path_top, test_source, top_ad9363_stream
+# RX_path_top, TX_path_top, data_packager_wrapper, top_ad9363_stream
 
 # Please add the sources of those modules before sourcing this Tcl script.
 
@@ -128,6 +128,7 @@ set bCheckIPsPassed 1
 set bCheckIPs 1
 if { $bCheckIPs == 1 } {
    set list_check_ips "\ 
+xilinx.com:ip:axi_fifo_mm_s:4.2\
 xilinx.com:ip:proc_sys_reset:5.0\
 xilinx.com:ip:processing_system7:5.5\
 "
@@ -157,7 +158,7 @@ if { $bCheckModules == 1 } {
    set list_check_mods "\ 
 RX_path_top\
 TX_path_top\
-test_source\
+data_packager_wrapper\
 top_ad9363_stream\
 "
 
@@ -257,6 +258,27 @@ proc create_root_design { parentCell } {
      catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
      return 1
    } elseif { $TX_path_top_0 eq "" } {
+     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
+     return 1
+   }
+  
+  # Create instance: axi_fifo_mm_s_0, and set properties
+  set axi_fifo_mm_s_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:axi_fifo_mm_s:4.2 axi_fifo_mm_s_0 ]
+  set_property CONFIG.C_USE_TX_CTRL {0} $axi_fifo_mm_s_0
+
+
+  # Create instance: axi_interconnect_0, and set properties
+  set axi_interconnect_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:axi_interconnect:2.1 axi_interconnect_0 ]
+  set_property CONFIG.NUM_MI {1} $axi_interconnect_0
+
+
+  # Create instance: data_packager_wrapper_0, and set properties
+  set block_name data_packager_wrapper
+  set block_cell_name data_packager_wrapper_0
+  if { [catch {set data_packager_wrapper_0 [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
+     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
+     return 1
+   } elseif { $data_packager_wrapper_0 eq "" } {
      catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
      return 1
    }
@@ -424,17 +446,6 @@ proc create_root_design { parentCell } {
   ] $processing_system7_0
 
 
-  # Create instance: test_source_0, and set properties
-  set block_name test_source
-  set block_cell_name test_source_0
-  if { [catch {set test_source_0 [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   } elseif { $test_source_0 eq "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   }
-  
   # Create instance: top_ad9363_stream_0, and set properties
   set block_name top_ad9363_stream
   set block_cell_name top_ad9363_stream_0
@@ -447,22 +458,27 @@ proc create_root_design { parentCell } {
    }
   
   # Create interface connections
-  connect_bd_intf_net -intf_net RX_path_top_0_axis_out [get_bd_intf_pins RX_path_top_0/axis_out] [get_bd_intf_pins test_source_0/axis_in]
+  connect_bd_intf_net -intf_net RX_path_top_0_axis_out [get_bd_intf_pins RX_path_top_0/axis_out] [get_bd_intf_pins data_packager_wrapper_0/axis_in]
   set_property HDL_ATTRIBUTE.DEBUG {true} [get_bd_intf_nets RX_path_top_0_axis_out]
   connect_bd_intf_net -intf_net TX_path_top_0_axis_out [get_bd_intf_pins TX_path_top_0/axis_out] [get_bd_intf_pins top_ad9363_stream_0/axis_in]
   set_property HDL_ATTRIBUTE.DEBUG {true} [get_bd_intf_nets TX_path_top_0_axis_out]
+  connect_bd_intf_net -intf_net axi_fifo_mm_s_0_AXI_STR_TXD [get_bd_intf_pins axi_fifo_mm_s_0/AXI_STR_TXD] [get_bd_intf_pins data_packager_wrapper_0/fifo_in]
+  connect_bd_intf_net -intf_net axi_interconnect_0_M00_AXI [get_bd_intf_pins axi_fifo_mm_s_0/S_AXI] [get_bd_intf_pins axi_interconnect_0/M00_AXI]
+  connect_bd_intf_net -intf_net data_packager_wrapper_0_axis_out [get_bd_intf_pins TX_path_top_0/axis_in] [get_bd_intf_pins data_packager_wrapper_0/axis_out]
+  set_property HDL_ATTRIBUTE.DEBUG {true} [get_bd_intf_nets data_packager_wrapper_0_axis_out]
+  connect_bd_intf_net -intf_net data_packager_wrapper_0_fifo_out [get_bd_intf_pins axi_fifo_mm_s_0/AXI_STR_RXD] [get_bd_intf_pins data_packager_wrapper_0/fifo_out]
   connect_bd_intf_net -intf_net processing_system7_0_DDR [get_bd_intf_ports DDR] [get_bd_intf_pins processing_system7_0/DDR]
   connect_bd_intf_net -intf_net processing_system7_0_FIXED_IO [get_bd_intf_ports FIXED_IO] [get_bd_intf_pins processing_system7_0/FIXED_IO]
-  connect_bd_intf_net -intf_net test_source_0_axis_out [get_bd_intf_pins TX_path_top_0/axis_in] [get_bd_intf_pins test_source_0/axis_out]
-  set_property HDL_ATTRIBUTE.DEBUG {true} [get_bd_intf_nets test_source_0_axis_out]
+  connect_bd_intf_net -intf_net processing_system7_0_M_AXI_GP0 [get_bd_intf_pins axi_interconnect_0/S00_AXI] [get_bd_intf_pins processing_system7_0/M_AXI_GP0]
   connect_bd_intf_net -intf_net top_ad9363_stream_0_axis_out [get_bd_intf_pins RX_path_top_0/axis_in] [get_bd_intf_pins top_ad9363_stream_0/axis_out]
   set_property HDL_ATTRIBUTE.DEBUG {true} [get_bd_intf_nets top_ad9363_stream_0_axis_out]
 
   # Create port connections
   connect_bd_net -net SPI0_MISO_I_0_1 [get_bd_ports spi_miso] [get_bd_pins processing_system7_0/SPI0_MISO_I]
   set_property HDL_ATTRIBUTE.DEBUG {true} [get_bd_nets SPI0_MISO_I_0_1]
-  connect_bd_net -net proc_sys_reset_0_peripheral_reset [get_bd_pins RX_path_top_0/rst] [get_bd_pins TX_path_top_0/rst] [get_bd_pins proc_sys_reset_0/peripheral_reset] [get_bd_pins test_source_0/rst] [get_bd_pins top_ad9363_stream_0/rst]
-  connect_bd_net -net processing_system7_0_FCLK_CLK0 [get_bd_pins RX_path_top_0/clk] [get_bd_pins TX_path_top_0/clk] [get_bd_pins proc_sys_reset_0/slowest_sync_clk] [get_bd_pins processing_system7_0/FCLK_CLK0] [get_bd_pins processing_system7_0/M_AXI_GP0_ACLK] [get_bd_pins test_source_0/clk] [get_bd_pins top_ad9363_stream_0/clk]
+  connect_bd_net -net proc_sys_reset_0_interconnect_aresetn [get_bd_pins axi_fifo_mm_s_0/s_axi_aresetn] [get_bd_pins axi_interconnect_0/ARESETN] [get_bd_pins axi_interconnect_0/M00_ARESETN] [get_bd_pins axi_interconnect_0/S00_ARESETN] [get_bd_pins proc_sys_reset_0/interconnect_aresetn]
+  connect_bd_net -net proc_sys_reset_0_peripheral_reset [get_bd_pins RX_path_top_0/rst] [get_bd_pins TX_path_top_0/rst] [get_bd_pins data_packager_wrapper_0/rst] [get_bd_pins proc_sys_reset_0/peripheral_reset] [get_bd_pins top_ad9363_stream_0/rst]
+  connect_bd_net -net processing_system7_0_FCLK_CLK0 [get_bd_pins RX_path_top_0/clk] [get_bd_pins TX_path_top_0/clk] [get_bd_pins axi_fifo_mm_s_0/s_axi_aclk] [get_bd_pins axi_interconnect_0/ACLK] [get_bd_pins axi_interconnect_0/M00_ACLK] [get_bd_pins axi_interconnect_0/S00_ACLK] [get_bd_pins data_packager_wrapper_0/clk] [get_bd_pins proc_sys_reset_0/slowest_sync_clk] [get_bd_pins processing_system7_0/FCLK_CLK0] [get_bd_pins processing_system7_0/M_AXI_GP0_ACLK] [get_bd_pins top_ad9363_stream_0/clk]
   connect_bd_net -net processing_system7_0_FCLK_RESET0_N [get_bd_pins proc_sys_reset_0/ext_reset_in] [get_bd_pins processing_system7_0/FCLK_RESET0_N]
   connect_bd_net -net processing_system7_0_GPIO_O [get_bd_ports gpio_emio] [get_bd_pins processing_system7_0/GPIO_O]
   set_property HDL_ATTRIBUTE.DEBUG {true} [get_bd_nets processing_system7_0_GPIO_O]
@@ -484,7 +500,6 @@ proc create_root_design { parentCell } {
   # Restore current instance
   current_bd_instance $oldCurInst
 
-  validate_bd_design
   save_bd_design
 }
 # End of create_root_design()
@@ -496,4 +511,6 @@ proc create_root_design { parentCell } {
 
 create_root_design ""
 
+
+common::send_gid_msg -ssname BD::TCL -id 2053 -severity "WARNING" "This Tcl script was generated from a block design that has not been validated. It is possible that design <$design_name> may result in errors during validation."
 
