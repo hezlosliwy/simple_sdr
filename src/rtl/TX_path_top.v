@@ -37,9 +37,7 @@ bch_encoder my_bch(
   .data_in(in_data),   
   .ready_out(bch_resizer_ready),
   .valid_out(bch_resizer_valid),
-  .data_out(bch_resizer_data),
-  .data_in_all(),
-  .data_out_all()
+  .data_out(bch_resizer_data)
 );
 
 

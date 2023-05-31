@@ -33,11 +33,12 @@ module data_packager(
     output wire in_ready
     );
 
-    reg data_available;
-    logic [6:0] frame_cnt;
-    enum { ST_IDLE, ST_IDLE_HEADER, ST_HEADER, ST_IDLE_PAYLOAD, ST_PAYLOAD } framegen_state;
+    (* MARK_DEBUG = "TRUE" *)logic [6:0] frame_cnt;
+    (* MARK_DEBUG = "TRUE" *)enum { ST_IDLE, ST_IDLE_HEADER, ST_HEADER, ST_IDLE_PAYLOAD, ST_PAYLOAD } framegen_state;
 
     logic in_resizer_ready;
+
+    logic fifo_data;
 
     stream_resizer
     #(
@@ -49,9 +50,28 @@ module data_packager(
       .in_valid(in_fifo_valid),
       .in_data(in_fifo_data),
       .in_ready(in_fifo_ready),
+      .out_valid(fifo_valid),
+      .out_data(fifo_data),
+      .out_ready(fifo_ready)
+  );
+
+  fifo_sync
+  #(
+    .WRITE_DATA_WIDTH(1),
+    .READ_DATA_WIDTH(1),
+    .DATA_DEPTH(16),
+    .PROG_EMPTY_THRESH(0),
+    .PROG_FULL_THRESH(0)
+  ) my_fifo_sync
+  (
+      .rst(rst),
+      .clk(clk),
+      .in_valid(fifo_valid),
+      .in_ready(fifo_ready),
+      .in_data(fifo_data),
       .out_valid(in_resizer_valid),
-      .out_data(in_resizer_data),
-      .out_ready(in_resizer_ready)
+      .out_ready(in_resizer_ready),
+      .out_data(in_resizer_data)
   );
 
     always @(posedge clk) begin : idle_frame_gen
@@ -110,14 +130,14 @@ module data_packager(
         end
     end
 
-    assign in_resizer_ready = framegen_state == ST_PAYLOAD & out_ready;
+    assign in_resizer_ready = (framegen_state == ST_PAYLOAD) & out_ready;
 
     ///////////////////////////////////////////////////////////////////////////////
 
     logic rx_in_valid;
-    logic [101:0] rx_frame, rx_frame_buff;
+    (* MARK_DEBUG = "TRUE" *)logic [101:0] rx_frame;
     logic rx_ready;
-    logic fifo_package_valid;
+    (* MARK_DEBUG = "TRUE" *)logic fifo_package_valid;
 
     stream_resizer
     #(
@@ -134,31 +154,19 @@ module data_packager(
       .out_ready(rx_ready)
     );
 
-    always @(posedge clk) begin : frame_packager
-        rx_frame_buff <= rx_frame;
-        if(rst) begin
-            fifo_package_valid <= 1'b0;
-        end
-        else begin
-            if (rx_in_valid) begin
-                if (rx_frame[101:95] == 6'b0) fifo_package_valid <= 1'b1;
-                else fifo_package_valid <= 1'b0;
-            end
-            else fifo_package_valid <= 1'b0;
-        end
-    end
+    assign fifo_package_valid = (rx_frame[101:96] == 6'b0) & rx_in_valid;
 
     stream_resizer
     #(
-      .IN_WIDTH(102),
+      .IN_WIDTH(96),
       .OUT_WIDTH(32)
     ) output_stream_resizer (
       .clk(clk),
       .rst(rst),
       .in_valid(fifo_package_valid),
-      .in_data(rx_frame_buff),
+      .in_data(rx_frame[95:0]),
       .in_ready(rx_ready),
-      .out_valid(rx_in_valid),
+      .out_valid(out_fifo_valid),
       .out_data(out_fifo_data),
       .out_ready(out_fifo_ready)
     );

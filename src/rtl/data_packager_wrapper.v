@@ -6,7 +6,7 @@ module data_packager_wrapper(
     (* X_INTERFACE_INFO = "xilinx.com:interface:axis:1.0 fifo_out TVALID" *)
     output wire out_fifo_valid,
     (* X_INTERFACE_INFO = "xilinx.com:interface:axis:1.0 fifo_out TDATA" *)
-    output reg [31:0] out_fifo_data,
+    output wire [31:0] out_fifo_data,
     (* X_INTERFACE_INFO = "xilinx.com:interface:axis:1.0 fifo_out TREADY" *)
     input wire out_fifo_ready,
     //input stream from fifo
@@ -15,12 +15,12 @@ module data_packager_wrapper(
     (* X_INTERFACE_INFO = "xilinx.com:interface:axis:1.0 fifo_in TDATA" *)
     input wire [31:0] in_fifo_data,
     (* X_INTERFACE_INFO = "xilinx.com:interface:axis:1.0 fifo_in TREADY" *)
-    output reg in_fifo_ready,
+    output wire in_fifo_ready,
     //internal output stream
     (* X_INTERFACE_INFO = "xilinx.com:interface:axis:1.0 axis_out TVALID" *)
-    output reg out_valid,
+    output wire out_valid,
     (* X_INTERFACE_INFO = "xilinx.com:interface:axis:1.0 axis_out TDATA" *)
-    output reg out_data, //i q
+    output wire out_data, //i q
     (* X_INTERFACE_INFO = "xilinx.com:interface:axis:1.0 axis_out TREADY" *)
     input wire out_ready,
     //internal input stream
