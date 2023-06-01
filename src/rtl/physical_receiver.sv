@@ -25,8 +25,8 @@ module physical_receiver(
   logic signed [1:0] sample_q, sample_q_prev; //sample_q_mux, 
   logic signed [3:0] diff_data_i, diff_data_q;
 
-  logic signed [13:0] gardner_mertic_sum;
-  logic signed [13:11] gardner_mertic_sum_msbs;
+  (* MARK_DEBUG = "TRUE" *)logic signed [13:0] gardner_mertic_sum;
+  (* MARK_DEBUG = "TRUE" *)logic signed [13:7] gardner_mertic_sum_msbs;
   logic [2:0] space_cnt;
 
   (* MARK_DEBUG = "TRUE" *)logic [12:0] sof_dist_cnt;
@@ -78,7 +78,7 @@ module physical_receiver(
   end
 
   assign phase_sum = (phase_cnt+phase)%8;
-  assign gardner_mertic_sum_msbs = gardner_mertic_sum[13:11];
+  assign gardner_mertic_sum_msbs = gardner_mertic_sum[13:7];
 
   always @(posedge clk) begin
     if(rst) begin
@@ -111,7 +111,7 @@ module physical_receiver(
 
       if(update_phase) begin
         update_cnt <= update_cnt + 1;
-        if(update_cnt == 15) begin
+        if(update_cnt == 7) begin
           if(gardner_mertic_sum_msbs < -1) phase <= phase + 1;
           else if(gardner_mertic_sum_msbs > 0) phase <= phase - 1;
           update_cnt <= 0;
@@ -142,10 +142,10 @@ module physical_receiver(
       if(phase_sum == 1 & in_valid) begin
         sof_reg <= {sof_reg[23:0], (diff_data_i > 0) ? 1'b1 : 1'b0};
         sof_i_reg <= {sof_i_reg[24:0],(in_data_store_i[1] > 0) ? 1'b1 : 1'b0};
-        if(rot_cnt_i > 23) rot <= 2'b00;
-        else if(rot_cnt_q > 23) rot <= 2'b01;
-        else if(rot_cnt_i < 3) rot <= 2'b10;
-        else if(rot_cnt_q < 3) rot <= 2'b11;
+        if(rot_cnt_i > 20) rot <= 2'b00;
+        else if(rot_cnt_q > 20) rot <= 2'b01;
+        else if(rot_cnt_i < 5) rot <= 2'b10;
+        else if(rot_cnt_q < 5) rot <= 2'b11;
         else rot <= rot;
       end
 
