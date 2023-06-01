@@ -134,9 +134,9 @@ module data_packager(
 
     ///////////////////////////////////////////////////////////////////////////////
 
-    logic rx_in_valid;
+    (* MARK_DEBUG = "TRUE" *)logic rx_in_valid;
     (* MARK_DEBUG = "TRUE" *)logic [101:0] rx_frame;
-    logic rx_ready;
+    (* MARK_DEBUG = "TRUE" *)logic rx_ready;
     (* MARK_DEBUG = "TRUE" *)logic fifo_package_valid;
 
     stream_resizer
@@ -154,7 +154,19 @@ module data_packager(
       .out_ready(rx_ready)
     );
 
-    assign fifo_package_valid = (rx_frame[101:96] == 6'b0) & rx_in_valid;
+    logic [2:0] data_frame_cnt;
+
+    always @(rx_frame) begin
+        data_frame_cnt = 0;
+        for(int i=96;i<102;i=i+1) begin
+            if(rx_frame[i]==0) begin
+                data_frame_cnt = data_frame_cnt + 1;
+            end
+        end
+    end
+
+    assign fifo_package_valid = (data_frame_cnt>3) & rx_in_valid;
+    assign rx_ready = (data_frame_cnt<=3) | (fifo_package_ready & (data_frame_cnt>3));
 
     stream_resizer
     #(
@@ -165,7 +177,7 @@ module data_packager(
       .rst(rst),
       .in_valid(fifo_package_valid),
       .in_data(rx_frame[95:0]),
-      .in_ready(rx_ready),
+      .in_ready(fifo_package_ready),
       .out_valid(out_fifo_valid),
       .out_data(out_fifo_data),
       .out_ready(out_fifo_ready)

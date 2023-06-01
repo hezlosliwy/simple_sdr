@@ -82,13 +82,28 @@ axis_fsource #(
   RX_path_top DUT(
     .clk(out_clk),
     .rst(rst),
-    .out_ready(1'b1),
-    .out_valid(out_stream_valid),
-    .out_data(out_stream_data),
+    .out_ready(fifo_ready),
+    .out_valid(fifo_valid),
+    .out_data(fifo_data),
     .in_valid(DUT_valid),
     .in_data(DUT_data),
     .in_ready(DUT_ready)
   );
+
+stream_resizer
+  #(
+    .IN_WIDTH(1),
+    .OUT_WIDTH(8)
+  ) output_stream_resizer (
+    .clk(out_clk),
+    .rst(rst),
+    .in_valid(fifo_valid),
+    .in_data(fifo_data),
+    .in_ready(fifo_ready),
+    .out_valid(out_stream_valid),
+    .out_data(out_stream_data),
+    .out_ready(1'b1)
+);
 
 task automatic process_output();
   while(1) begin
