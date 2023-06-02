@@ -10,6 +10,48 @@ module physical_receiver(
     (* MARK_DEBUG = "TRUE" *)output reg out_valid
   );
 
+  // error det begin
+
+  logic signed [11:0] temp_i, temp_q;
+
+  assign temp_i = in_data[23:12];
+  assign temp_q = in_data[11:0];
+
+  real ind_i, ind_q;
+  real phase_correction;
+  assign ind_i = temp_i*$cos(phase_correction) + temp_q*$sin(phase_correction);
+  assign ind_q = -temp_q*$cos(phase_correction) + temp_i*$sin(phase_correction);
+
+  real err_i, err_q, err_tot;
+
+  real err_reg [0:999];
+  real mean;
+  assign err_i = ind_q>0 ? ind_i : ind_i*(-1.0);
+  assign err_q = ind_i>0 ? ind_q : ind_q*(-1.0);
+  assign err_tot = err_i - err_q;
+
+  always @(posedge clk) begin
+    if (in_valid) begin
+      err_reg[0] <= err_tot;
+      for(int i=1;i<1000;i=i+1) begin
+        err_reg[i] <=err_reg[i-1];
+      end
+      mean = (mean + err_tot - err_reg[99]);
+      phase_correction = phase_correction + mean/100000000;
+      if(phase_correction < 0.0) phase_correction <= 3.14;
+      else if(phase_correction > 3.14) phase_correction <= 0.0;
+    end
+  end
+
+  logic signed [11:0] fixed_i, fixed_q;
+
+  assign fixed_i = ind_i;
+  assign fixed_q = ind_q;
+
+  // error det end
+
+
+
   logic signed [11:0] in_data_store_i [2:0];
   logic signed [11:0] in_data_store_q [2:0];
   (* MARK_DEBUG = "TRUE" *)logic unsigned [2:0] phase_cnt;
@@ -67,8 +109,8 @@ module physical_receiver(
       else sof_dist_cnt <= sof_dist_cnt + 1;
 
       if(in_valid) begin
-        in_data_store_q[0] <= in_data[11:0];
-        in_data_store_i[0] <= in_data[23:12];
+        in_data_store_q[0] <= fixed_i;//in_data[11:0];
+        in_data_store_i[0] <= fixed_q;//in_data[23:12];
         for(int i = 1;i<3;i=i+1) begin
           in_data_store_i[i] <= in_data_store_i[i-1];
           in_data_store_q[i] <= in_data_store_q[i-1];
@@ -142,10 +184,10 @@ module physical_receiver(
       if(phase_sum == 1 & in_valid) begin
         sof_reg <= {sof_reg[23:0], (diff_data_i > 0) ? 1'b1 : 1'b0};
         sof_i_reg <= {sof_i_reg[24:0],(in_data_store_i[1] > 0) ? 1'b1 : 1'b0};
-        if(rot_cnt_i > 20) rot <= 2'b00;
-        else if(rot_cnt_q > 20) rot <= 2'b01;
-        else if(rot_cnt_i < 5) rot <= 2'b10;
-        else if(rot_cnt_q < 5) rot <= 2'b11;
+        if(rot_cnt_i > 23) rot <= 2'b00;
+        else if(rot_cnt_q > 23) rot <= 2'b01;
+        else if(rot_cnt_i < 2) rot <= 2'b10;
+        else if(rot_cnt_q < 2) rot <= 2'b11;
         else rot <= rot;
       end
 
