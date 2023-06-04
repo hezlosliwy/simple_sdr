@@ -104,7 +104,7 @@ module bch_decoder (
         ST_EDP: begin
           sig1 <= S1;
           sig2 <= mult(S1,S1) ^ mult(S3,inverse(S1));
-          if(S1!=0 & S3!=0) begin
+          if(S1!=0 | S3!=0) begin
             bch_state <= ST_FIND_ERRORS;
             e <= 6'b10;
           end else begin
@@ -119,9 +119,9 @@ module bch_decoder (
               syndrome_cnt <= 6'b0;
               bch_state <= ST_IDLE;
             end
-            // if(err_found) begin
-            //   $display("Error found %d", 62-syndrome_cnt);
-            // end
+//             if(err_found) begin
+//               $display("Error found %d", 62-syndrome_cnt);
+//             end
             e <= mult(e, 6'b000010);
             data_reg <= {data_reg[61:0], 1'b0};
           end
