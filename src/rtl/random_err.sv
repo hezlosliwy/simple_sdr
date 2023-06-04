@@ -31,6 +31,7 @@ module random_err(
 
     int i = 0;
     int temp,temp2;
+     
     initial begin
         temp = $urandom_range(0,62);
         temp2 = $urandom_range(0,62);
@@ -39,20 +40,13 @@ module random_err(
     assign ready_in = ready_out;
     assign data_out = ( i == temp || i ==temp2 )? 1^data_in : data_in;
     always @ (posedge clk) begin
-        if(i == 62 && ready_out && valid_in ==1 )begin
-            if ( i == temp || i ==temp2 ) begin
-                i = 0;
-                temp = $urandom_range(0,62);
-                temp2 = $urandom_range(0,62);
-            end
-            else begin
-                i = 0;
-                temp = $urandom_range(0,62);
-                temp2 = $urandom_range(0,62);
-            end
+        if(i == 62)begin
+            i = 0;
+            temp = $urandom_range(0,62);
+            temp2 = $urandom_range(0,62);
         end
         else if (ready_out == 1 && valid_in ==1 ) begin
-                i = i+1;
+            i = i+1;
         end
      end
 endmodule
