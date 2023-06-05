@@ -1,21 +1,21 @@
 #include "xgpiops.h"
-#include "xparameters.h"
 
-#include "fifo_platform.h"
-#include "ad9361_platform.h"
+#include "xll_fifo/fifo_platform.h"
+#include "ad9361/ad9361_platform.h"
 
-/* GPIO defines */
-#define GPIO_RESET_PIN 54+0
-#define GPIO_DEVICE_ID XPAR_PS7_GPIO_0_DEVICE_ID
-#define SPI_DEVICE_ID XPAR_PS7_SPI_0_DEVICE_ID
 
 #define FIFO_DEV_ID	   	XPAR_AXI_FIFO_0_DEVICE_ID
+#define TEST_BUFFER_SIZE 32
 
-struct ad9361_rf_phy *ad9361_phy;
+static u8 SendBuffer[TEST_BUFFER_SIZE];	/* Buffer for Transmitting Data */
+static u8 RecvBuffer[TEST_BUFFER_SIZE];	/* Buffer for Receiving Data */
+
+
+/* FIFO driver instance */
+XLlFifo FifoInstance;
 
 int main(void){
 
-	int32_t res;
 	u32 mode;
 	XGpioPs my_gpio;
 	XGpioPs_Config *cfg_ptr;
@@ -23,17 +23,7 @@ int main(void){
 	int Status;
 
 	/* -------------- AD9361 init -------------- */
-	default_init_param.gpio_resetb = GPIO_RESET_PIN;
-	gpio_init(GPIO_DEVICE_ID);
-	gpio_direction(default_init_param.gpio_resetb, 1);
-
-	spi_init(SPI_DEVICE_ID, 1, 0);
-	res = ad9361_init(&ad9361_phy, &default_init_param);
-	res = ad9361_set_rx_fir_config(ad9361_phy, rx_fir_config);
-	res = ad9361_set_tx_fir_config(ad9361_phy, tx_fir_config);
-	uint32_t sr = 2084000;		//10240000; //15360000;
-	ad9361_get_tx_sampling_freq (ad9361_phy, &sr);
-	ad9361_get_rx_sampling_freq (ad9361_phy, &sr);
+	ad9361Init(ad9361_phy);
 
 	// xil_printf("Hello\n");
 	
@@ -50,10 +40,20 @@ int main(void){
 
 	xil_printf("--- Welcome to simple_sdr API ---\n\r");
 
+
+
 	while(1)
 	{
 		/* Check ad9361 state machine status for debug */
 		ad9361_get_en_state_machine_mode(ad9361_phy, &mode);
+//		XUartPs_SetOperMode(&Uart_PS, XUARTPS_OPER_MODE_AUTO_ECHO);
+//		for (Index = 0; Index < TEST_BUFFER_SIZE; Index++) {
+//			SendBuffer[Index] = '0' + Index;
+//			RecvBuffer[Index] = 0;
+//		}
+
+		/* Block sending the buffer. */
+//		SentCount = XUartPs_Send(&Uart_PS, SendBuffer, TEST_BUFFER_SIZE);
 
 		Status = FifoPolling(&FifoInstance, FIFO_DEV_ID);
 		if (Status != XST_SUCCESS)
@@ -62,7 +62,7 @@ int main(void){
 	//		xil_printf("--- Exiting API ---\n\r");
 	//		return XST_FAILURE;
 		}
-		xil_printf(" Test Succeeded. Output data matches input stream\n\r");
+//		xil_printf(" Test Succeeded. Output data matches input stream\n\r");
 	//	xil_printf("--- Exiting API ---\n\r");
 	//	return XST_SUCCESS;
 	}

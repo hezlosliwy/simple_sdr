@@ -7,8 +7,8 @@
 #include "ad9361.h"
 #include "xil_printf.h"
 
-AD9361_InitParam default_init_param;
-AD9361_RXFIRConfig rx_fir_config;
-AD9361_TXFIRConfig tx_fir_config;
+int ad9361Init(struct ad9361_rf_phy *ad9361_phy);
+
+extern struct ad9361_rf_phy *ad9361_phy;
 
 #endif

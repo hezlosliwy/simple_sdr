@@ -4,6 +4,17 @@
 #include "ad9361.h"
 #include "xil_printf.h"
 
+/* GPIO defines */
+#define GPIO_RESET_PIN 54+0
+#define GPIO_DEVICE_ID XPAR_PS7_GPIO_0_DEVICE_ID
+#define SPI_DEVICE_ID XPAR_PS7_SPI_0_DEVICE_ID
+#define SPI_DEVICE_ID XPAR_PS7_SPI_0_DEVICE_ID
+
+AD9361_InitParam default_init_param;
+AD9361_RXFIRConfig rx_fir_config;
+AD9361_TXFIRConfig tx_fir_config;
+
+struct ad9361_rf_phy *ad9361_phy;
 
 AD9361_InitParam default_init_param = {
 	/* Identification number */
@@ -50,7 +61,7 @@ AD9361_InitParam default_init_param = {
 	0,		//rx_rf_port_input_select *** adi,rx-rf-port-input-select
 	0,		//tx_rf_port_input_select *** adi,tx-rf-port-input-select
 	/* TX Attenuation Control */
-	1000,	//tx_attenuation_mdB *** adi,tx-attenuation-mdB
+	6000,	//tx_attenuation_mdB *** adi,tx-attenuation-mdB
 	0,		//update_tx_gain_in_alert_enable *** adi,update-tx-gain-in-alert-enable
 	/* Reference Clock Control */
 	0,		//xo_disable_use_ext_refclk_enable *** adi,xo-disable-use-ext-refclk-enable
@@ -310,3 +321,20 @@ AD9361_TXFIRConfig tx_fir_config = {	// BPF PASSBAND 3/20 fs to 1/4 fs
 	},
     128 // tx_coef_size
 };
+
+int ad9361Init()
+{
+	int32_t res;
+
+	default_init_param.gpio_resetb = GPIO_RESET_PIN;
+	gpio_init(GPIO_DEVICE_ID);
+	gpio_direction(default_init_param.gpio_resetb, 1);
+
+	spi_init(SPI_DEVICE_ID, 1, 0);
+	res = ad9361_init(&ad9361_phy, &default_init_param);
+	res = ad9361_set_rx_fir_config(ad9361_phy, rx_fir_config);
+	res = ad9361_set_tx_fir_config(ad9361_phy, tx_fir_config);
+	uint32_t sr = 2084000;		//10240000; //15360000;
+	ad9361_get_tx_sampling_freq (ad9361_phy, &sr);
+	ad9361_get_rx_sampling_freq (ad9361_phy, &sr);
+}

@@ -3,15 +3,20 @@
 #include "xil_cache.h"
 #include "xllfifo.h"
 #include "xstatus.h"
-
+#include "xuartps.h"
+#include "xparameters.h"
 #include "fifo_platform.h"
+#include "xuartps_hw.h"
 
-/* FIFO defines */
-#define FIFO_DEV_ID	   	XPAR_AXI_FIFO_0_DEVICE_ID
-#define WORD_SIZE 4
-#define MAX_PACKET_LEN 1
-#define NO_OF_PACKETS 3
-#define MAX_DATA_BUFFER_SIZE NO_OF_PACKETS*MAX_PACKET_LEN
+#define UART_DEVICE_ID  XPAR_PS7_UART_1_DEVICE_ID
+
+
+/* FIFO buffer definitions */
+u32 SourceBuffer[MAX_DATA_BUFFER_SIZE * WORD_SIZE];
+u32 DestinationBuffer[MAX_DATA_BUFFER_SIZE * WORD_SIZE];
+
+XUartPs Uart_PS;
+XUartPs_Config *UartConfig;
 
 int FifoPolling(XLlFifo *InstancePtr, u16 DeviceId)
 {
@@ -34,6 +39,24 @@ int FifoPolling(XLlFifo *InstancePtr, u16 DeviceId)
 		xil_printf("Initialization failed\n\r");
 		return Status;
 	}
+
+
+	unsigned int SentCount;
+	unsigned int ReceivedCount;
+	u16 Index;
+	u32 LoopCount = 0;
+
+	UartConfig = XUartPs_LookupConfig(UART_DEVICE_ID);
+	if (NULL == UartConfig) {
+		return XST_FAILURE;
+	}
+	Status = XUartPs_CfgInitialize(&Uart_PS, UartConfig, UartConfig->BaseAddress);
+	if (Status != XST_SUCCESS) {
+		return XST_FAILURE;
+	}
+
+	XUartPs_SetOperMode(&Uart_PS, XUARTPS_OPER_MODE_NORMAL);
+
 
 	/* Transmit the Data Stream */
 	Status = TxSend(InstancePtr, SourceBuffer);
@@ -68,7 +91,7 @@ int FifoPolling(XLlFifo *InstancePtr, u16 DeviceId)
 
 int TxSend(XLlFifo *InstancePtr, u32  *SourceAddr)
 {
-	char8 c;
+	static u8 c[4];
 	u32 temp;
 
 	int i;
@@ -81,8 +104,18 @@ int TxSend(XLlFifo *InstancePtr, u32  *SourceAddr)
 	{
 		for (k=0; k<4; k++)
 		{
-			outbyte(c = inbyte());
-			temp = ((c<<(k*8)) | temp );
+			u8 stat;
+			while(1){
+				XUartPs_Send(&Uart_PS, &stat, 1);
+				c[0] = XUartPs_RecvByte(UartConfig->BaseAddress);
+//				stat = XUartPs_Recv(&Uart_PS, &c, 4);
+//				if(stat == 1) {
+//					break;
+//				}
+			}
+			XUartPs_Send(&Uart_PS, c, 1);
+//			outbyte(c = inbyte());
+			temp = ((c[0]<<(k*8)) | temp );
 		}
 		*(SourceAddr + i) = temp;
 	}
