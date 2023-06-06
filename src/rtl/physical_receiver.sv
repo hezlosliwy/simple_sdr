@@ -18,12 +18,14 @@ module physical_receiver(
   assign temp_i = in_data[23:12];
   assign temp_q = in_data[11:0];
 
+  logic signed [11:0] sin_cordic, cos_cordic;
+
   real ind_i, ind_q;
-  real phase_correction = 5.3;
+  real phase_correction = 0.0;
   always @(posedge clk) begin
     if(in_valid) begin
-      ind_q <= real(temp_i)*$cos(phase_correction) + real(temp_q)*$sin(phase_correction);
-      ind_i <= -real(temp_q)*$cos(phase_correction) + real(temp_i)*$sin(phase_correction);
+      ind_q <= real(temp_i)*real(cos_cordic)/1024 + real(temp_q)*real(sin_cordic)/1024;
+      ind_i <= -real(temp_q)*real(cos_cordic)/1024 + real(temp_i)*real(sin_cordic)/1024;
     end
   end
   
@@ -47,6 +49,17 @@ module physical_receiver(
   end
 
   assign real_out_lf = out_lf;
+ 
+
+  cordic_360 i_cordic
+  (
+      .clock(clk),
+      .reset(rst),
+      .ce(~rst),
+      .angle(phase_correction*512),
+      .x(cos_cordic),
+      .y(sin_cordic)
+  );
 
   loop_filter my_loop_filter (
     .aclk(clk),
