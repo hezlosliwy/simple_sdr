@@ -79,11 +79,13 @@ module bch_decoder (
     else begin
       case (bch_state)
         ST_IDLE: begin
-          bch_state <= ST_SYNDROME;
-          a1 <= inverse(6'b10);
-          a3 <= inverse(6'b1000);
-          S1 <= 6'b000000;
-          S3 <= 6'b000000;
+          if(out_ready | ~out_valid) begin
+            bch_state <= ST_SYNDROME;
+            a1 <= inverse(6'b10);
+            a3 <= inverse(6'b1000);
+            S1 <= 6'b000000;
+            S3 <= 6'b000000;
+          end
         end
         ST_SYNDROME: begin
           if(in_valid) begin
