@@ -19,12 +19,25 @@ module RX_path_top (
 
 wire [1:0] pl_data;
 
+wire [31:0] fir_data;
+
+fir_compiler_0 my_fir(
+  .aclk(clk),
+  .aresetn(~rst),
+  .s_axis_data_tvalid(in_valid),
+  .s_axis_data_tdata({4'b0, in_data[23:12], 4'b0, in_data[11:0]}),
+  .s_axis_data_tready(in_ready),
+  .m_axis_data_tvalid(fir_valid),
+  .m_axis_data_tdata(fir_data),
+  .m_axis_data_tready(fir_ready)
+);
+
 physical_receiver my_receiver(
     .clk(clk),
     .rst(rst),
-    .in_valid(in_valid),
-    .in_data(in_data),
-    .in_ready(in_ready),
+    .in_valid(fir_valid),
+    .in_data({fir_data[27:16], fir_data[11:0]}),
+    .in_ready(fir_ready),
     .out_valid(pl_valid),
     .out_data(pl_data)
   );

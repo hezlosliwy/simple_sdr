@@ -13,33 +13,56 @@ module physical_receiver(
   // error det begin
 
   logic signed [11:0] temp_i, temp_q;
+  logic unsigned [2:0] phase_sum;
 
   assign temp_i = in_data[23:12];
   assign temp_q = in_data[11:0];
 
   real ind_i, ind_q;
-  real phase_correction;
-  assign ind_i = temp_i*$cos(phase_correction) + temp_q*$sin(phase_correction);
-  assign ind_q = -temp_q*$cos(phase_correction) + temp_i*$sin(phase_correction);
+  real phase_correction = 5.3;
+  always @(posedge clk) begin
+    if(in_valid) begin
+      ind_q <= real(temp_i)*$cos(phase_correction) + real(temp_q)*$sin(phase_correction);
+      ind_i <= -real(temp_q)*$cos(phase_correction) + real(temp_i)*$sin(phase_correction);
+    end
+  end
+  
 
   real err_i, err_q, err_tot;
 
-  real err_reg [0:999];
+  real err_reg [0:99];
   real mean;
   assign err_i = ind_q>0 ? ind_i : ind_i*(-1.0);
   assign err_q = ind_i>0 ? ind_q : ind_q*(-1.0);
   assign err_tot = err_i - err_q;
 
+  logic signed [15:0] out_lf;
+  real real_out_lf;
+  logic signed [11:0] in_lf;
+  logic in_lf_valid;
+
   always @(posedge clk) begin
-    if (in_valid) begin
-      err_reg[0] <= err_tot;
-      for(int i=1;i<1000;i=i+1) begin
-        err_reg[i] <=err_reg[i-1];
-      end
-      mean = (mean + err_tot - err_reg[99]);
-      phase_correction = phase_correction + mean/100000000;
-      if(phase_correction < 0.0) phase_correction <= 3.14;
-      else if(phase_correction > 3.14) phase_correction <= 0.0;
+    in_lf <= (err_tot);
+    in_lf_valid <= in_valid;
+  end
+
+  assign real_out_lf = out_lf;
+
+  loop_filter my_loop_filter (
+    .aclk(clk),
+    .aresetn(~rst),
+    .s_axis_data_tvalid(phase_sum == 6 & in_valid),
+    .s_axis_data_tready(),
+    .s_axis_data_tdata({in_lf[11], in_lf[11], in_lf[11], in_lf[11], in_lf}),
+    .m_axis_data_tvalid(),
+    .m_axis_data_tdata(out_lf)
+  );
+
+  always @(posedge clk) begin
+    if (phase_sum == 6 & in_valid) begin
+      phase_correction = phase_correction - real_out_lf/3000;
+      if(phase_correction < 0.0) phase_correction <= 6.28;
+      else if(phase_correction > 6.28) phase_correction <= 0.0;
     end
   end
 
@@ -56,15 +79,14 @@ module physical_receiver(
   logic signed [11:0] in_data_store_q [2:0];
   (* MARK_DEBUG = "TRUE" *)logic unsigned [2:0] phase_cnt;
   (* MARK_DEBUG = "TRUE" *)logic unsigned [2:0] phase;
-  logic unsigned [2:0] phase_sum;
   (* MARK_DEBUG = "TRUE" *)logic signed [22:0] gardner_mertic_i;
   (* MARK_DEBUG = "TRUE" *)logic signed [22:0] gardner_mertic_q;
   (* MARK_DEBUG = "TRUE" *)logic update_phase;
   logic signed [4:0] update_value;
   logic unsigned [5:0] update_cnt;
 
-  logic signed [1:0] sample_i, sample_i_prev; //sample_i_mux, 
-  logic signed [1:0] sample_q, sample_q_prev; //sample_q_mux, 
+  logic signed [1:0] sample_i, sample_i_prev; 
+  logic signed [1:0] sample_q, sample_q_prev; 
   logic signed [3:0] diff_data_i, diff_data_q;
 
   (* MARK_DEBUG = "TRUE" *)logic signed [13:0] gardner_mertic_sum;
@@ -82,15 +104,16 @@ module physical_receiver(
 
   (* MARK_DEBUG = "TRUE" *)logic found_sof;
 
-  logic [5:0] correl_cnt, correl_cnt_swap;
-  (* MARK_DEBUG = "TRUE" *)logic [5:0] rot_cnt_i, rot_cnt_i_not;
-  (* MARK_DEBUG = "TRUE" *)logic [5:0] rot_cnt_q, rot_cnt_q_not;
+  logic [5:0] correl_cnt;
+  (* MARK_DEBUG = "TRUE" *)logic unsigned [5:0] rot_cnt_i, rot_cnt_i_not;
+  (* MARK_DEBUG = "TRUE" *)logic unsigned [5:0] rot_cnt_q, rot_cnt_q_not;
 
   logic [25:0] sof_i_reg;
 
   logic [5:0] frame_cnt;
 
   logic found_sof_int;
+  logic found_sof_prev;
 
   (* MARK_DEBUG = "TRUE" *)logic [1:0] rot;
 
@@ -109,8 +132,8 @@ module physical_receiver(
       else sof_dist_cnt <= sof_dist_cnt + 1;
 
       if(in_valid) begin
-        in_data_store_q[0] <= fixed_i;//in_data[11:0];
-        in_data_store_i[0] <= fixed_q;//in_data[23:12];
+        in_data_store_q[0] <= fixed_q;
+        in_data_store_i[0] <= fixed_i;
         for(int i = 1;i<3;i=i+1) begin
           in_data_store_i[i] <= in_data_store_i[i-1];
           in_data_store_q[i] <= in_data_store_q[i-1];
@@ -170,6 +193,8 @@ module physical_receiver(
   assign diff_data_i = sample_i*sample_i_prev - sample_q*sample_q_prev;
   assign diff_data_q = -sample_i*sample_q_prev + sample_q*sample_i_prev;
 
+  logic [5:0] rot_max;
+  
   always @(posedge clk) begin
     if(rst) begin
       sof_reg <= 25'b0;
@@ -181,14 +206,26 @@ module physical_receiver(
       rot <= 2'b0;
     end
     else begin
+      found_sof_prev <= found_sof;
       if(phase_sum == 1 & in_valid) begin
         sof_reg <= {sof_reg[23:0], (diff_data_i > 0) ? 1'b1 : 1'b0};
         sof_i_reg <= {sof_i_reg[24:0],(in_data_store_i[1] > 0) ? 1'b1 : 1'b0};
-        if(rot_cnt_i > 23) rot <= 2'b00;
-        else if(rot_cnt_q > 23) rot <= 2'b01;
-        else if(rot_cnt_i < 2) rot <= 2'b10;
-        else if(rot_cnt_q < 2) rot <= 2'b11;
-        else rot <= rot;
+        rot_max = 0;
+      end
+      if(found_sof & ~found_sof_prev) begin
+        if(rot_cnt_i > rot_max) begin
+          rot <= 2'b00;
+          rot_max = rot_cnt_i;
+        end
+        if(rot_cnt_q > rot_max) begin
+          rot <= 2'b01;
+          rot_max = rot_cnt_q;
+        end
+        if(rot_cnt_i_not > rot_max) begin
+          rot <= 2'b10;
+          rot_max = rot_cnt_i_not;
+        end
+        if(rot_cnt_q_not > rot_max) rot <= 2'b11;
       end
 
       correl_cnt = 0;
@@ -199,7 +236,8 @@ module physical_receiver(
         rot_cnt_i = xor_sof_i[i]==1'b0 ? (rot_cnt_i + 1) : rot_cnt_i;
         rot_cnt_q = xor_sof_q[i]==1'b0 ? (rot_cnt_q + 1) : rot_cnt_q;
       end
-
+      rot_cnt_i_not = 25 - rot_cnt_i;
+      rot_cnt_q_not = 25 - rot_cnt_q;
       if(correl_cnt > 20) begin
         found_sof <= 1'b1;
       end
