@@ -15,7 +15,10 @@ foreach x $vect_list {
     add_files -fileset sim_1 $x
 }
 # Add block design generated modules
-add_files -norecurse ./../src/xci/fir_compiler_0.xci
+add_files -norecurse ./../src/xci/fir_compiler_0/fir_compiler_0.xci
+add_files -norecurse ./../src/xci/rx_filter/rx_filter.xci
+add_files -norecurse ./../src/xci/loop_filter/loop_filter.xci
+
 #Change dir to generate temporary files in prj dir
 cd ../prj/sdr/
 

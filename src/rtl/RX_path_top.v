@@ -21,7 +21,7 @@ wire [1:0] pl_data;
 
 wire [31:0] fir_data;
 
-fir_compiler_0 my_fir(
+rx_filter my_fir(
   .aclk(clk),
   .aresetn(~rst),
   .s_axis_data_tvalid(in_valid),
