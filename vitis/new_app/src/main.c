@@ -3,13 +3,9 @@
 #include "xll_fifo/fifo_platform.h"
 #include "ad9361/ad9361_platform.h"
 
-
+#define UART_DEVICE_ID  XPAR_XUARTPS_0_DEVICE_ID
 #define FIFO_DEV_ID	   	XPAR_AXI_FIFO_0_DEVICE_ID
 #define TEST_BUFFER_SIZE 32
-
-static u8 SendBuffer[TEST_BUFFER_SIZE];	/* Buffer for Transmitting Data */
-static u8 RecvBuffer[TEST_BUFFER_SIZE];	/* Buffer for Receiving Data */
-
 
 /* FIFO driver instance */
 XLlFifo FifoInstance;
@@ -22,7 +18,12 @@ int main(void){
 
 	int Status;
 
-	/* -------------- AD9361 init -------------- */
+	/* ---------- AD9361 and UART init ---------- */
+	Status = UartInit(UART_DEVICE_ID);
+	if (Status != XST_SUCCESS){
+		xil_printf("Uart init failed");
+	}
+
 	ad9361Init(ad9361_phy);
 
 	// xil_printf("Hello\n");
@@ -38,33 +39,21 @@ int main(void){
 
 	/* --------------------------------------- */
 
-	xil_printf("--- Welcome to simple_sdr API ---\n\r");
-
-
+	PsPrint("--- Welcome to simple_sdr API ---\n\r");
 
 	while(1)
 	{
 		/* Check ad9361 state machine status for debug */
 		ad9361_get_en_state_machine_mode(ad9361_phy, &mode);
-//		XUartPs_SetOperMode(&Uart_PS, XUARTPS_OPER_MODE_AUTO_ECHO);
-//		for (Index = 0; Index < TEST_BUFFER_SIZE; Index++) {
-//			SendBuffer[Index] = '0' + Index;
-//			RecvBuffer[Index] = 0;
-//		}
-
-		/* Block sending the buffer. */
-//		SentCount = XUartPs_Send(&Uart_PS, SendBuffer, TEST_BUFFER_SIZE);
 
 		Status = FifoPolling(&FifoInstance, FIFO_DEV_ID);
 		if (Status != XST_SUCCESS)
 		{
-			xil_printf(" Test Failed. Output data doesn't match input stream\n\r");
-	//		xil_printf("--- Exiting API ---\n\r");
-	//		return XST_FAILURE;
+			PsPrint(" Test Failed. Output data doesn't match input stream\n\r");
 		}
-//		xil_printf(" Test Succeeded. Output data matches input stream\n\r");
-	//	xil_printf("--- Exiting API ---\n\r");
-	//	return XST_SUCCESS;
+		else{
+			PsPrint(" Test Succeeded. Output data matches input stream\n\r");
+		}
 	}
 }
 

@@ -19,4 +19,7 @@ int FifoPolling(XLlFifo *InstancePtr, u16 DeviceId);
 int TxSend(XLlFifo *InstancePtr, u32 *SourceAddr);
 int RxReceive(XLlFifo *InstancePtr, u32 *DestinationAddr);
 
+int UartInit(u16 DeviceId);
+int PsPrint(u8 InputBuffer[]);
+
 #endif

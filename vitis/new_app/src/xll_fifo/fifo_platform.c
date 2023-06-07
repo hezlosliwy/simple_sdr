@@ -6,10 +6,7 @@
 #include "xuartps.h"
 #include "xparameters.h"
 #include "fifo_platform.h"
-#include "xuartps_hw.h"
-
-#define UART_DEVICE_ID  XPAR_PS7_UART_1_DEVICE_ID
-
+#include "xuartps.h"
 
 /* FIFO buffer definitions */
 u32 SourceBuffer[MAX_DATA_BUFFER_SIZE * WORD_SIZE];
@@ -29,51 +26,33 @@ int FifoPolling(XLlFifo *InstancePtr, u16 DeviceId)
 	/* Initialize the Device Configuration Interface driver */
 	Config = XLlFfio_LookupConfig(DeviceId);
 	if (!Config) {
-		xil_printf("No config found for %d\r\n", DeviceId);
+		PsPrint("No config found\r\n");
 		return XST_FAILURE;
 	}
 
 	/* Initialize FIFO */
 	Status = XLlFifo_CfgInitialize(InstancePtr, Config, Config->BaseAddress);
 	if (Status != XST_SUCCESS) {
-		xil_printf("Initialization failed\n\r");
+		PsPrint("Initialization failed\n\r");
 		return Status;
 	}
-
-
-	unsigned int SentCount;
-	unsigned int ReceivedCount;
-	u16 Index;
-	u32 LoopCount = 0;
-
-	UartConfig = XUartPs_LookupConfig(UART_DEVICE_ID);
-	if (NULL == UartConfig) {
-		return XST_FAILURE;
-	}
-	Status = XUartPs_CfgInitialize(&Uart_PS, UartConfig, UartConfig->BaseAddress);
-	if (Status != XST_SUCCESS) {
-		return XST_FAILURE;
-	}
-
-	XUartPs_SetOperMode(&Uart_PS, XUARTPS_OPER_MODE_NORMAL);
-
 
 	/* Transmit the Data Stream */
 	Status = TxSend(InstancePtr, SourceBuffer);
 	if (Status != XST_SUCCESS){
-		xil_printf("Transmission of data failed\n\r");
+		PsPrint("Transmission of data failed\n\r");
 		return XST_FAILURE;
 	}
 
 	/* Receive the Data Stream */
 	Status = RxReceive(InstancePtr, DestinationBuffer);
 	if (Status != XST_SUCCESS){
-		xil_printf("Receiving data failed");
+		PsPrint("Receiving data failed\n\r");
 		return XST_FAILURE;
 	}
 
 	Error = 0;
-	xil_printf(" Comparing data ...\n\r");
+	PsPrint(" Comparing data ...\n\r");
 	for( i=0 ; i<MAX_DATA_BUFFER_SIZE ; i++ ){
 		if ( *(SourceBuffer + i) != *(DestinationBuffer + i) ){
 			Error = 1;
@@ -91,31 +70,24 @@ int FifoPolling(XLlFifo *InstancePtr, u16 DeviceId)
 
 int TxSend(XLlFifo *InstancePtr, u32  *SourceAddr)
 {
-	static u8 c[4];
+	u8 c[1];
 	u32 temp;
-
 	int i;
 	int j;
 	int k;
-	xil_printf(" Transmitting Data ... \r\n");
-	xil_printf(" Enter the 12 character message to be sent: ");
-	/* Fill the transmit buffer with incremental pattern */
-	for (i=0;i<MAX_DATA_BUFFER_SIZE;i++)
+
+	PsPrint(" Enter the 12 character message to be sent: ");
+	
+	for (i=0; i<MAX_DATA_BUFFER_SIZE; i++)
 	{
+		temp = 0;
 		for (k=0; k<4; k++)
 		{
-			u8 stat;
-			while(1){
-				XUartPs_Send(&Uart_PS, &stat, 1);
-				c[0] = XUartPs_RecvByte(UartConfig->BaseAddress);
-//				stat = XUartPs_Recv(&Uart_PS, &c, 4);
-//				if(stat == 1) {
-//					break;
-//				}
-			}
-			XUartPs_Send(&Uart_PS, c, 1);
-//			outbyte(c = inbyte());
-			temp = ((c[0]<<(k*8)) | temp );
+			/* Reading and Writing from/to PS UART */
+			c[0] = XUartPs_RecvByte(UartConfig->BaseAddress);
+			PsPrint(c);
+			/* Sending data in 32 bit packages */
+			temp = ((c[0]<<(8*(3-k))) | temp );
 		}
 		*(SourceAddr + i) = temp;
 	}
@@ -140,7 +112,7 @@ int TxSend(XLlFifo *InstancePtr, u32  *SourceAddr)
 }
 
 
-int RxReceive (XLlFifo *InstancePtr, u32* DestinationAddr)
+int RxReceive(XLlFifo *InstancePtr, u32* DestinationAddr)
 {
 
 	int i;
@@ -148,7 +120,7 @@ int RxReceive (XLlFifo *InstancePtr, u32* DestinationAddr)
 	u32 RxWord;
 	static u32 ReceiveLength;
 
-	xil_printf(" Receiving data ....\n\r");
+	PsPrint(" Receiving data ...\n\r");
 
 	while(XLlFifo_iRxOccupancy(InstancePtr)) {
 		/* Read Receive Length */
@@ -161,9 +133,45 @@ int RxReceive (XLlFifo *InstancePtr, u32* DestinationAddr)
 
 	Status = XLlFifo_IsRxDone(InstancePtr);
 	if(Status != TRUE){
-		xil_printf("Failing in receive complete ... \r\n");
+		PsPrint(" Failing in receive ... \r\n");
 		return XST_FAILURE;
 	}
 
 	return XST_SUCCESS;
+}
+
+
+int UartInit(u16 DeviceId)
+{
+	int Status;
+
+	UartConfig = XUartPs_LookupConfig(DeviceId);
+	if (NULL == UartConfig) {
+		return XST_FAILURE;
+	}
+	Status = XUartPs_CfgInitialize(&Uart_PS, UartConfig, UartConfig->BaseAddress);
+	if (Status != XST_SUCCESS) {
+		return XST_FAILURE;
+	}
+
+	XUartPs_SetBaudRate(&Uart_PS, 115200);
+	XUartPs_SetOperMode(&Uart_PS, XUARTPS_OPER_MODE_NORMAL);
+
+	return XST_SUCCESS;
+}
+
+
+int PsPrint(u8 InputBuffer[])
+{
+	int Count = 0;
+
+	/* Single character printout */
+	if (InputBuffer[1] == '\r') 
+		InputBuffer[1] = '\0';
+
+	while (InputBuffer[Count] != '\0') {
+		Count += XUartPs_Send(&Uart_PS, &InputBuffer[Count], 1);
+	}
+
+	return Count;
 }
