@@ -337,4 +337,6 @@ int ad9361Init()
 	uint32_t sr = 2084000;		//10240000; //15360000;
 	ad9361_get_tx_sampling_freq (ad9361_phy, &sr);
 	ad9361_get_rx_sampling_freq (ad9361_phy, &sr);
+
+	return XST_SUCCESS;
 }
