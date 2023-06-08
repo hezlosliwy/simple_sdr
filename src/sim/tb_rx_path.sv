@@ -7,7 +7,7 @@ localparam CLK_PERIOD = 20;
 logic clk, out_clk;
 logic rst = 1'b1;
 
-logic [15:0] in_stream_data_i, in_stream_data_q;
+logic signed [11:0] in_stream_data_i, in_stream_data_q;
 logic [23:0] in_stream;
 logic [1:0] iq_rot = 0;
 logic [7:0] out_stream_data;
@@ -32,8 +32,8 @@ initial begin
 end
 
 axis_fsource #(
-    .DATA_WIDTH_IN_BYTES(4),
-    .FILE_NAME("tb_rx.out")
+    .DATA_WIDTH_IN_BYTES(3),
+    .FILE_NAME("data2.bin")//("data2.bin")
 ) in_source
   (
     .clk(clk),
@@ -44,18 +44,18 @@ axis_fsource #(
     .eof(eof2)
   );
 
-  assign eof = eof1 | eof2;
+  assign eof = eof2;
 
   always @(iq_rot, in_stream_data_i, in_stream_data_q) begin
     case (iq_rot)
       2'b00:
-        in_stream <= {in_stream_data_i[13:2], in_stream_data_q[13:2]};
+        in_stream <= {in_stream_data_i, in_stream_data_q};
       2'b01:
-        in_stream <= {~in_stream_data_q[13:2], in_stream_data_i[13:2]};
+        in_stream <= {~in_stream_data_q, in_stream_data_i};
       2'b10:
-        in_stream <= {~in_stream_data_i[13:2], ~in_stream_data_q[13:2]};
+        in_stream <= {~in_stream_data_i, ~in_stream_data_q};
       2'b11:
-        in_stream <= {in_stream_data_q[13:2], ~in_stream_data_i[13:2]};
+        in_stream <= {in_stream_data_q, ~in_stream_data_i};
     endcase
   end
 
