@@ -12,34 +12,31 @@ module physical_receiver(
 
   // error det begin
 
-  logic signed [11:0] temp_i, temp_q;
+  (* MARK_DEBUG = "TRUE" *)logic signed [11:0] temp_i, temp_q;
   logic unsigned [2:0] phase_sum;
 
   assign temp_i = in_data[23:12];
   assign temp_q = in_data[11:0];
 
-  logic signed [11:0] sin_cordic, cos_cordic;
+  logic signed [11:0] sin_cordic, cos_cordic; // 2.10fxp
 
-  real ind_i, ind_q;
-  real phase_correction = 0.0;
+  logic signed [23:0] ind_i, ind_q;
+  (* MARK_DEBUG = "TRUE" *)logic signed [11:0] phase_correction; // 3.9fxp
   always @(posedge clk) begin
     if(in_valid) begin
-      ind_q <= real(temp_i)*real(cos_cordic)/1024 + real(temp_q)*real(sin_cordic)/1024;
-      ind_i <= -real(temp_q)*real(cos_cordic)/1024 + real(temp_i)*real(sin_cordic)/1024;
+      ind_q <= temp_i*cos_cordic + temp_q*sin_cordic;
+      ind_i <= -temp_q*cos_cordic + temp_i*sin_cordic;
     end
   end
   
 
-  real err_i, err_q, err_tot;
+  logic signed [11:0] err_i, err_q, err_tot;
 
-  real err_reg [0:99];
-  real mean;
-  assign err_i = ind_q>0 ? ind_i : ind_i*(-1.0);
-  assign err_q = ind_i>0 ? ind_q : ind_q*(-1.0);
+  assign err_i = ~ind_q[23] ? (ind_i>>>11) : ~(ind_i>>>11);
+  assign err_q = ~ind_i[23] ? (ind_q>>>11) : ~(ind_q>>>11);
   assign err_tot = err_i - err_q;
 
-  logic signed [15:0] out_lf;
-  real real_out_lf;
+  (* MARK_DEBUG = "TRUE" *)logic signed [15:0] out_lf;
   logic signed [11:0] in_lf;
   logic in_lf_valid;
 
@@ -48,15 +45,12 @@ module physical_receiver(
     in_lf_valid <= in_valid;
   end
 
-  assign real_out_lf = out_lf;
- 
-
   cordic_360 i_cordic
   (
       .clock(clk),
       .reset(rst),
       .ce(~rst),
-      .angle(phase_correction*512),
+      .angle(phase_correction + 1607), //3.14*512
       .x(cos_cordic),
       .y(sin_cordic)
   );
@@ -72,17 +66,19 @@ module physical_receiver(
   );
 
   always @(posedge clk) begin
-    if (phase_sum == 6 & in_valid) begin
-      phase_correction = phase_correction - real_out_lf/3000;
-      if(phase_correction < 0.0) phase_correction <= 6.28;
-      else if(phase_correction > 6.28) phase_correction <= 0.0;
+    if(rst) phase_correction <= 0;
+    else if (phase_sum == 6 & in_valid) begin
+      // phase_correction = ;// /3000
+      if((phase_correction - (out_lf>>>3)) < -1607) phase_correction <= 1607;
+      else if((phase_correction - (out_lf>>>3)) > 1607) phase_correction <= -1607;
+      else phase_correction <= phase_correction - (out_lf>>>3);
     end
   end
 
-  logic signed [11:0] fixed_i, fixed_q;
+  (* MARK_DEBUG = "TRUE" *)logic signed [11:0] fixed_i, fixed_q;
 
-  assign fixed_i = ind_i;
-  assign fixed_q = ind_q;
+  assign fixed_i = (ind_i>>>11);
+  assign fixed_q = (ind_q>>>11);
 
   // error det end
 

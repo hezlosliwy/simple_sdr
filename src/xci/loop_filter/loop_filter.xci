@@ -4,7 +4,7 @@
     "xci_name": "loop_filter",
     "component_reference": "xilinx.com:ip:fir_compiler:7.2",
     "ip_revision": "18",
-    "gen_directory": "./loop_filter",
+    "gen_directory": "../../prj/sdr/loop_filter",
     "parameters": {
       "component_parameters": {
         "Component_Name": [ { "value": "loop_filter", "resolve_type": "user", "usage": "all" } ],
