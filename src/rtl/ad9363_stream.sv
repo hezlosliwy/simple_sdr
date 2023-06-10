@@ -38,18 +38,30 @@ module ad9363_stream (
   reg tx_ready;
   reg tx_valid;
   reg [23:0] tx_data;
-  reg arst, arst_sync;
+  wire arst, arst_sync;
 
   assign fb_clk = data_clk;
 
-  always @(posedge rst or posedge data_clk) begin
-    if(rst) arst_sync <= 1'b1;
-    else arst_sync <= 1'b0;
-  end
+  xpm_cdc_async_rst
+  #(
+     .DEST_SYNC_FF(4),  
+     .INIT_SYNC_FF(1),  
+     .RST_ACTIVE_HIGH(1)
+  ) xpm_cdc_async_rst_inst 
+  (
+     .dest_arst(arst),
+     .dest_clk(data_clk),
+     .src_arst(rst)
+  );
 
-  always @(posedge data_clk) begin
-    arst <= arst_sync;
-  end
+  // always @(posedge rst or posedge data_clk) begin
+  //   if(rst) arst_sync <= 1'b1;
+  //   else arst_sync <= 1'b0;
+  // end
+
+  // always @(posedge data_clk) begin
+  //   arst <= arst_sync;
+  // end
 
   //TX CONTROL
   always @(posedge data_clk) begin

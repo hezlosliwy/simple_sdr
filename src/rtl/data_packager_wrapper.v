@@ -9,6 +9,8 @@ module data_packager_wrapper(
     output wire [31:0] out_fifo_data,
     (* X_INTERFACE_INFO = "xilinx.com:interface:axis:1.0 fifo_out TREADY" *)
     input wire out_fifo_ready,
+    (* X_INTERFACE_INFO = "xilinx.com:interface:axis:1.0 fifo_out TLAST" *)
+    output wire out_fifo_last,
     //input stream from fifo
     (* X_INTERFACE_INFO = "xilinx.com:interface:axis:1.0 fifo_in TVALID" *)
     input wire in_fifo_valid,
@@ -31,6 +33,8 @@ module data_packager_wrapper(
     (* X_INTERFACE_INFO = "xilinx.com:interface:axis:1.0 axis_in TREADY" *)
     output wire in_ready
     );
+
+assign out_fifo_last = out_fifo_valid;
 
 data_packager my_packager(
     clk,
