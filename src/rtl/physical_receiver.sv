@@ -15,8 +15,8 @@ module physical_receiver(
   (* MARK_DEBUG = "TRUE" *)logic signed [11:0] temp_i, temp_q;
   logic unsigned [2:0] phase_sum;
 
-  assign temp_i = in_data[23:12];
-  assign temp_q = in_data[11:0];
+  assign temp_i = in_data[23:12]<<2;
+  assign temp_q = in_data[11:0]<<2;
 
   logic signed [11:0] sin_cordic, cos_cordic; // 2.10fxp
 
@@ -56,7 +56,7 @@ module physical_receiver(
       .clock(clk),
       .reset(rst),
       .ce(~rst),
-      .angle(phase_correction + 1607), //3.14*512
+      .angle(phase_correction + 12'd1607), //3.14*512
       .x(cos_cordic),
       .y(sin_cordic)
   );
@@ -72,11 +72,12 @@ module physical_receiver(
   );
 
   always @(posedge clk) begin
-    if(rst) phase_correction <= 0;
+    if(rst) phase_correction <= 300;
     else if (phase_sum == 6 & in_valid) begin
-      if((phase_correction - (out_lf>>>3)) < -1607) phase_correction <= 1607;
-      else if((phase_correction - (out_lf>>>3)) > 1607) phase_correction <= -1607;
-      else phase_correction <= phase_correction - (out_lf>>>3);
+      phase_correction <= phase_correction + 1;
+      if((phase_correction - (out_lf>>>5)) < -1580) phase_correction <= 1560;
+      else if((phase_correction - (out_lf>>>5)) > 1580) phase_correction <= -1560;
+      else phase_correction <= phase_correction - (out_lf>>>5);
     end
   end
 
@@ -196,7 +197,7 @@ module physical_receiver(
           gardner_mertic_sum <= 0;
         end
         else begin
-          gardner_mertic_sum <= gardner_mertic_sum + (gardner_mertic_i>>>6) + (gardner_mertic_q>>>6);
+          gardner_mertic_sum <= gardner_mertic_sum + (gardner_mertic_i>>>9) + (gardner_mertic_q>>>9);
         end
       end
     end

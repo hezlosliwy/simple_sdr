@@ -6,8 +6,8 @@ module cordic_360
         input  wire reset,
         input  wire ce,
         input  wire unsigned [11:0] angle,
-        output reg  [11:0] x,
-        output reg  [11:0] y
+        output logic signed [11:0] x,
+        output logic signed [11:0] y
     );
 
     wire signed [11:0] sin_out, cos_out;
