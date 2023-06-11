@@ -46,8 +46,8 @@ AD9361_InitParam default_init_param = {
 	0,		//ensm_enable_pin_pulse_mode_enable *** adi,ensm-enable-pin-pulse-mode-enable
 	0,		//ensm_enable_txnrx_control_enable *** adi,ensm-enable-txnrx-control-enable
 	/* LO Control */
-	400000000UL,	//rx_synthesizer_frequency_hz *** adi,rx-synthesizer-frequency-hz
-	400000000UL,	//tx_synthesizer_frequency_hz *** adi,tx-synthesizer-frequency-hz
+	869000000UL,	//rx_synthesizer_frequency_hz *** adi,rx-synthesizer-frequency-hz
+	869000000UL,	//tx_synthesizer_frequency_hz *** adi,tx-synthesizer-frequency-hz
 	/* Rate & BW Control */
 //	{98304000, 24576000, 12288000, 6144000, 3072000, 3072000},//uint32_t	rx_path_clock_frequencies[6] *** adi,rx-path-clock-frequencies
 //	{98304000, 12288000, 12288000, 6144000, 3072000, 3072000},//uint32_t	tx_path_clock_frequencies[6] *** adi,tx-path-clock-frequencies
@@ -332,8 +332,10 @@ int ad9361Init()
 
 	spi_init(SPI_DEVICE_ID, 1, 0);
 	res = ad9361_init(&ad9361_phy, &default_init_param);
-	res = ad9361_set_rx_fir_config(ad9361_phy, rx_fir_config);
-	res = ad9361_set_tx_fir_config(ad9361_phy, tx_fir_config);
+	ad9361_set_tx_auto_cal_en_dis (ad9361_phy, 1);
+//	res = ad9361_set_rx_fir_config(ad9361_phy, rx_fir_config);
+//	res = ad9361_set_tx_fir_config(ad9361_phy, tx_fir_config);
+//	ad9361_set_rx_rf_gain (ad9361_phy, 0, -6);
 	uint32_t sr = 2084000;		//10240000; //15360000;
 	ad9361_get_tx_sampling_freq (ad9361_phy, &sr);
 	ad9361_get_rx_sampling_freq (ad9361_phy, &sr);

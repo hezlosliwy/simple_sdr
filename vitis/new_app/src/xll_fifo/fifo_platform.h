@@ -21,5 +21,5 @@ int RxReceive(XLlFifo *InstancePtr, u32 *DestinationAddr);
 
 int UartInit(u16 DeviceId);
 int PsPrint(u8 InputBuffer[]);
-
+void Fifoinit(XLlFifo *InstancePtr, u16 DeviceId);
 #endif

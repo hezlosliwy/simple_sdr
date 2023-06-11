@@ -40,7 +40,7 @@ int main(void){
 	/* --------------------------------------- */
 
 	PsPrint("--- Welcome to simple_sdr API ---\n\r");
-
+	Fifoinit(&FifoInstance, FIFO_DEV_ID);
 	while(1)
 	{
 		/* Check ad9361 state machine status for debug */

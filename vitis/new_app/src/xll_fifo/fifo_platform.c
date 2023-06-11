@@ -3,10 +3,10 @@
 #include "xil_cache.h"
 #include "xllfifo.h"
 #include "xstatus.h"
-#include "xuartps.h"
 #include "xparameters.h"
 #include "fifo_platform.h"
 #include "xuartps.h"
+#include "xil_printf.h"
 
 /* FIFO buffer definitions */
 u32 SourceBuffer[MAX_DATA_BUFFER_SIZE * WORD_SIZE];
@@ -15,18 +15,13 @@ u32 DestinationBuffer[MAX_DATA_BUFFER_SIZE * WORD_SIZE];
 XUartPs Uart_PS;
 XUartPs_Config *UartConfig;
 
-int FifoPolling(XLlFifo *InstancePtr, u16 DeviceId)
-{
+void Fifoinit(XLlFifo *InstancePtr, u16 DeviceId){
 	XLlFifo_Config *Config;
-	int Status;
-	int i;
-	int Error;
-	Status = XST_SUCCESS;
-
+	int Status = XST_SUCCESS;
 	/* Initialize the Device Configuration Interface driver */
 	Config = XLlFfio_LookupConfig(DeviceId);
 	if (!Config) {
-		PsPrint("No config found\r\n");
+		PsPrint("No config found\n\r");
 		return XST_FAILURE;
 	}
 
@@ -36,6 +31,14 @@ int FifoPolling(XLlFifo *InstancePtr, u16 DeviceId)
 		PsPrint("Initialization failed\n\r");
 		return Status;
 	}
+}
+
+int FifoPolling(XLlFifo *InstancePtr, u16 DeviceId)
+{
+	int Status;
+	int i;
+	int Error;
+	Status = XST_SUCCESS;
 
 	/* Transmit the Data Stream */
 	Status = TxSend(InstancePtr, SourceBuffer);
@@ -43,7 +46,7 @@ int FifoPolling(XLlFifo *InstancePtr, u16 DeviceId)
 		PsPrint("Transmission of data failed\n\r");
 		return XST_FAILURE;
 	}
-
+	printf("Go to receive");
 	/* Receive the Data Stream */
 	Status = RxReceive(InstancePtr, DestinationBuffer);
 	if (Status != XST_SUCCESS){
@@ -54,10 +57,13 @@ int FifoPolling(XLlFifo *InstancePtr, u16 DeviceId)
 	Error = 0;
 	PsPrint(" Comparing data ...\n\r");
 	for( i=0 ; i<MAX_DATA_BUFFER_SIZE ; i++ ){
-		if ( *(SourceBuffer + i) != *(DestinationBuffer + i) ){
+		printf("buffer number %d \n\r", i);
+		printf("Dest %h \r\n", (unsigned int)(DestinationBuffer[i]));
+		printf("Source %h\r\n", (unsigned int)(SourceBuffer[i]));
+		if ( SourceBuffer[i] != DestinationBuffer[i] ){
 			Error = 1;
 			break;
-		}
+		} else {		printf("Correct: %d\r\n", i); }
 	}
 
 	if (Error != 0){
@@ -89,7 +95,8 @@ int TxSend(XLlFifo *InstancePtr, u32  *SourceAddr)
 			/* Sending data in 32 bit packages */
 			temp = ((c[0]<<(8*(3-k))) | temp );
 		}
-		*(SourceAddr + i) = temp;
+		SourceAddr[i] = temp;
+		while(XLlFifo_IsRxEmpty(InstancePtr)==0) {XLlFifo_RxGetWord(InstancePtr);}
 	}
 
 	for(i=0 ; i < NO_OF_PACKETS ; i++){
@@ -119,21 +126,32 @@ int RxReceive(XLlFifo *InstancePtr, u32* DestinationAddr)
 	int Status;
 	u32 RxWord;
 	static u32 ReceiveLength;
-
+	static u32 OcupLength;
+	u8 Buffer[32];
 	PsPrint(" Receiving data ...\n\r");
 
+//	while(!XLlFifo_iRxOccupancy(InstancePtr)) {}
+	printf("Go to receiving\n\r");
+	while(XLlFifo_iRxGetLen(InstancePtr)!=12){}
 	while(XLlFifo_iRxOccupancy(InstancePtr)) {
 		/* Read Receive Length */
-		ReceiveLength = (XLlFifo_iRxGetLen(InstancePtr))/WORD_SIZE;
-		for (i=0; i < ReceiveLength; i++) {
+		ReceiveLength = (XLlFifo_iRxGetLen(InstancePtr));
+		printf("Received len: %d \n\r", (int)ReceiveLength);
+		OcupLength = XLlFifo_iRxOccupancy(InstancePtr);
+		printf("Occupancy len: %d \n\r", (int)OcupLength);
+
+		for (i=0; i < OcupLength; i++) {
 			RxWord = XLlFifo_RxGetWord(InstancePtr);
-			*(DestinationBuffer+i) = RxWord;
+			printf("Received sign: %x \n\r", (unsigned int)RxWord);
+
+			DestinationBuffer[i] = RxWord;
+			printf("Desination buffer sign: %x \n\r", (unsigned int)DestinationBuffer[i]);
 		}
 	}
 
 	Status = XLlFifo_IsRxDone(InstancePtr);
 	if(Status != TRUE){
-		PsPrint(" Failing in receive ... \r\n");
+		PsPrint(" Failing in receive ... \n\r");
 		return XST_FAILURE;
 	}
 
