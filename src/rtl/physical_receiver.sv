@@ -13,7 +13,7 @@ module physical_receiver(
   // error det begin
 
   (* MARK_DEBUG = "TRUE" *)logic signed [11:0] temp_i, temp_q;
-  logic unsigned [2:0] phase_sum;
+  logic unsigned [3:0] phase_sum;
 
   assign temp_i = in_data[23:12]<<2;
   assign temp_q = in_data[11:0]<<2;
@@ -92,8 +92,8 @@ module physical_receiver(
 
   logic signed [11:0] in_data_store_i [2:0];
   logic signed [11:0] in_data_store_q [2:0];
-  (* MARK_DEBUG = "TRUE" *)logic unsigned [2:0] phase_cnt;
-  (* MARK_DEBUG = "TRUE" *)logic unsigned [2:0] phase;
+  (* MARK_DEBUG = "TRUE" *)logic unsigned [3:0] phase_cnt;
+  (* MARK_DEBUG = "TRUE" *)logic unsigned [3:0] phase;
   (* MARK_DEBUG = "TRUE" *)logic signed [22:0] gardner_mertic_i;
   (* MARK_DEBUG = "TRUE" *)logic signed [22:0] gardner_mertic_q;
   (* MARK_DEBUG = "TRUE" *)logic update_phase;
@@ -157,7 +157,7 @@ module physical_receiver(
     end
   end
 
-  assign phase_sum = (phase_cnt+phase)%8;
+  assign phase_sum = phase_cnt;
   assign gardner_mertic_sum_msbs = gardner_mertic_sum[13:7];
 
   always @(posedge clk) begin
@@ -176,7 +176,8 @@ module physical_receiver(
     end
     else if(in_valid) begin
       phase_cnt <= phase_cnt + 1;
-      if(phase_sum == 0) begin
+      if(phase_sum == phase) begin
+        phase_cnt <= 0;
         found_sof_int <= found_sof;
         sample_i <= (~(in_data_store_i[1][11])) ? 1 : -1;
         sample_q <= (~(in_data_store_q[1][11])) ? 1 : -1;
@@ -191,20 +192,22 @@ module physical_receiver(
       if(update_phase) begin
         update_cnt <= update_cnt + 1;
         if(update_cnt == 7) begin
-          if(gardner_mertic_sum_msbs < -1) phase <= phase + 1;
-          else if(gardner_mertic_sum_msbs > 0) phase <= phase - 1;
+          if(gardner_mertic_sum_msbs < -1) phase <= 6;
+          else if(gardner_mertic_sum_msbs > 0) phase <= 8;
+          else phase <= 7;
           update_cnt <= 0;
           gardner_mertic_sum <= 0;
         end
         else begin
           gardner_mertic_sum <= gardner_mertic_sum + (gardner_mertic_i>>>9) + (gardner_mertic_q>>>9);
+          phase <= 7;
         end
       end
     end
   end
 
   assign diff_data_i = sample_i*sample_i_prev - sample_q*sample_q_prev;
-  assign diff_data_q = -sample_i*sample_q_prev + sample_q*sample_i_prev;
+  // assign diff_data_q = sample_i*sample_q_prev + sample_q*sample_i_prev;
 
   logic [5:0] rot_max;
   
@@ -271,7 +274,7 @@ module physical_receiver(
 
   logic signed sample_i_qpsk, sample_q_qpsk;
 
-  assign sample_i_qpsk = iq_change ? sample_q[1] : sample_i[1]; 
+  assign sample_i_qpsk = iq_change ? sample_q[1] : sample_i[1];
   assign sample_q_qpsk = iq_change ? sample_i[1] : sample_q[1];
 
   always @(posedge clk) begin
