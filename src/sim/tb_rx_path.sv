@@ -9,7 +9,7 @@ logic rst = 1'b1;
 
 logic signed [11:0] in_stream_data_i, in_stream_data_q;
 logic [23:0] in_stream;
-logic [1:0] iq_rot = 0;
+logic [1:0] iq_rot = 2;
 logic [7:0] out_stream_data;
 logic out_stream_valid;
 logic [7:0] out_model_data;
@@ -33,7 +33,7 @@ end
 
 axis_fsource #(
     .DATA_WIDTH_IN_BYTES(3),
-    .FILE_NAME("data2.bin")//("data2.bin")
+    .FILE_NAME("data4.bin")//("data2.bin")
 ) in_source
   (
     .clk(clk),
